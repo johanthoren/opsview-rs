@@ -1,5 +1,6 @@
 [package]
 name = "opsview"
+description = "A Rust Opsview API Client Library with batteries included"
 version = "0.1.0"
 edition = "2021"
 license = "ISC"
