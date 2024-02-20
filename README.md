@@ -1,5 +1,9 @@
 # Rust Opsview API Client Library
 
+[![crates.io](https://img.shields.io/crates/v/opsview.svg)](https://crates.io/crates/opsview)
+[![Documentation](https://docs.rs/opsview/badge.svg)](https://docs.rs/opsview)
+[![ISC licensed](https://img.shields.io/crates/l/opsview.svg)](./LICENSE)
+
 ## Introduction
 
 The *opsview* crate is a Rust library designed to interact with the [Opsview
@@ -56,17 +60,6 @@ async fn main() {
 This allows you to write robust solutions with fewer errors.
 
 Adding these checks is a priority but still a work in progress.
-
-## Getting Started
-
-`opsview` is not yet available on [crates.io](https://crates.io/), but you can
-still use it in your Rust project by adding the following to your `Cargo.toml`
-file:
-
-```toml
-[dependencies]
-opsview = { git = "https://github.com/johanthoren/opsview-rs", branch = "main" }
-```
 
 ## Basic Usage
 
