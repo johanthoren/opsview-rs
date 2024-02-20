@@ -65,7 +65,7 @@ file:
 
 ```toml
 [dependencies]
-opsview = { git = "https://github.com/johanthoren/opsview-rs", branch = "master }
+opsview = { git = "https://github.com/johanthoren/opsview-rs", branch = "main" }
 ```
 
 ## Basic Usage
