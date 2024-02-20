@@ -14,13 +14,6 @@ management using this Rust library.
 This project is currently in development and is subject to change at any time.
 It is not yet complete.
 
-## Affiliation with ITRS Group
-
-This project is not affiliated with [ITRS Group](https://www.itrsgroup.com).
-Please direct any questions or bug reports to [the GitHub page of the
-project](https://github.com/johanthoren/opsview-rs) and not to ITRS Group
-Support.
-
 ## Features
 
 - Comprehensive coverage of Opsview objects: Hosts, Service Checks, Host Groups,
@@ -241,10 +234,15 @@ please refer to the generated docs using:
 cargo doc --open
 ```
 
-## Support
+## Affiliation with ITRS Group
 
-For support and questions, please open an issue in the project's GitHub
-repository.
+This project is not affiliated with [ITRS Group](https://www.itrsgroup.com).
+
+## Support and bug reports
+
+Please direct any questions or bug reports to [the GitHub page of the
+project](https://github.com/johanthoren/opsview-rs) and not to ITRS Group
+Support.
 
 ## Testing
 
