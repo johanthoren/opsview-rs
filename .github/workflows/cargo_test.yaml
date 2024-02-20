@@ -1,0 +1,29 @@
+name: "Cargo Tests"
+
+permissions:
+  contents: "write"
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  cargo_test:
+    name: Cargo Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Run cargo fmt
+        run: cargo fmt --check
+      - name: Run cargo clippy
+        run: cargo clippy -- -D warnings
+      - name: Run cargo test
+        run: cargo test

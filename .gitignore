@@ -1,0 +1,5 @@
+/target
+/resources
+/Cargo.lock
+/.no_auto_test
+/.vscode/

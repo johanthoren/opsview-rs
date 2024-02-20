@@ -1,0 +1,31 @@
+name: "On-demand test suite"
+
+permissions:
+  contents: "write"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  security_audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: EmbarkStudios/cargo-deny-action@v1
+
+  cargo_test:
+    name: Cargo Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Run cargo test
+        run: cargo test
+      - name: Run cargo fmt
+        run: cargo fmt --check
+      - name: Run cargo clippy
+        run: cargo clippy -- -D warnings
