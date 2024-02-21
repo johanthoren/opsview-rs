@@ -19,6 +19,7 @@ pub fn is_valid_past_unix_timestamp(ts: u64) -> bool {
 pub const BSM_COMPONENT_NAME_REGEX_STR: &str = r"^[\p{L}\p{N}][\p{L}\p{N}\p{S}\p{P} ]*$";
 pub const CONTACT_NAME_REGEX_STR: &str = r"^[\p{L}\p{N}][\p{L}\p{N}._@#-]*$";
 pub const CONTACTLINK_NAME_REGEX_STR: &str = r"^[\p{L}\p{N}][\p{L}\p{N} ._-]*$";
+pub const CONTACTLINK_URL_REGEX_STR: &str = r"^(https?:\/)?\/[\p{L}\p{N}\p{S}\p{P} ]*$";
 pub const CRITICAL_COMPARISON_REGEX_STR: &str = r"^(eq|ne|regex|==|<|>)$";
 pub const HASHTAG_NAME_REGEX_STR: &str = r"^[\p{L}\p{N}][\p{L}\p{N}_-]*$";
 pub const HOST_NAME_REGEX_STR: &str = r"^[\p{L}\p{N}.\-_]+$";
@@ -52,6 +53,7 @@ lazy_static! {
     static ref BSM_COMPONENT_NAME_REGEX: Regex = Regex::new(BSM_COMPONENT_NAME_REGEX_STR).unwrap();
     static ref CONTACT_NAME_REGEX: Regex = Regex::new(CONTACT_NAME_REGEX_STR).unwrap();
     static ref CONTACTLINK_NAME_REGEX: Regex = Regex::new(CONTACTLINK_NAME_REGEX_STR).unwrap();
+    static ref CONTACTLINK_URL_REGEX: Regex = Regex::new(CONTACTLINK_URL_REGEX_STR).unwrap();
     static ref CRITICAL_COMPARISON_REGEX: Regex =
         Regex::new(CRITICAL_COMPARISON_REGEX_STR).unwrap();
     static ref HASHTAG_NAME_REGEX: Regex = Regex::new(HASHTAG_NAME_REGEX_STR).unwrap();
@@ -197,6 +199,10 @@ pub fn validate_and_trim_contact_name(name: &str) -> Result<String, OpsviewConfi
 
 pub fn validate_and_trim_contactlink_name(name: &str) -> Result<String, OpsviewConfigError> {
     validate_trimmed_string(name, 3, 128, &CONTACTLINK_NAME_REGEX)
+}
+
+pub fn validate_and_trim_contactlink_url(url: &str) -> Result<String, OpsviewConfigError> {
+    validate_trimmed_string(url, 1, 255, &CONTACTLINK_URL_REGEX)
 }
 
 pub fn validate_and_trim_critical_comparison(comp: &str) -> Result<String, OpsviewConfigError> {

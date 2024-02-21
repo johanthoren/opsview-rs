@@ -34,7 +34,6 @@ pub struct ContactLink {
     pub name: String,
 
     // Optional fields ---------------------------------------------------------------------------//
-    // TODO: Add validation of this field.
     /// URL associated with this contact link.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
@@ -145,13 +144,14 @@ impl Builder for ContactLinkBuilder {
     /// # Errors
     /// Returns an `OpsviewConfigError` if the `name` field is not set or not valid.
     /// Returns an `OpsviewConfigError` if the `url` field is not set.
+    /// Returns an `OpsviewConfigError` if the url is not valid.
     fn build(self) -> Result<Self::ConfigObject, OpsviewConfigError> {
         let name = require_field(&self.name, "name")?;
         let url = require_field(&self.url, "url")?;
 
         Ok(ContactLink {
             name: validate_and_trim_contactlink_name(&name)?,
-            url: Some(url),
+            url: Some(validate_and_trim_contactlink_url(&url)?),
             fontawesome_icon: self.fontawesome_icon,
             id: None,
         })
