@@ -216,64 +216,45 @@ mod tests {
     }
 
     #[test]
-    fn test_minimal_fails_with_invalid_name() {
-        let contactlink = ContactLink::minimal("My Contact Link 1");
-        assert!(contactlink.is_ok());
+    fn test_minimal_fails_with_invalid_names() {
+        let valid_contact_link = ContactLink::minimal("My Contact Link 1");
+        assert!(
+            valid_contact_link.is_ok(),
+            "Valid contact link should be OK"
+        );
 
-        let contatlink2 = ContactLink::minimal("My Contact Link 1!");
-        assert!(contatlink2.is_err());
-
-        let contatlink3 = ContactLink::minimal("My Contact Link 1#");
-        assert!(contatlink3.is_err());
-
-        let contatlink4 = ContactLink::minimal("My Contact Link 1$");
-        assert!(contatlink4.is_err());
-
-        let contatlink5 = ContactLink::minimal("My Contact Link 1%");
-        assert!(contatlink5.is_err());
-
-        let contatlink6 = ContactLink::minimal("My Contact Link 1&");
-        assert!(contatlink6.is_err());
+        let invalid_characters = ["!", "#", "$", "%", "&"];
+        for &char in invalid_characters.iter() {
+            let contact_link_name = format!("My Contact Link 1{}", char);
+            let contact_link = ContactLink::minimal(&contact_link_name);
+            assert!(
+                contact_link.is_err(),
+                "Contact link with '{}' should be Err",
+                char
+            );
+        }
     }
 
     #[test]
     fn test_build_fails_with_invalid_name() {
         let valid_url = "/monitoring/#!/allproblems?cid=mxUQoVgjyu273hJ8".to_string();
+        let base_name = "My Contact Link 1";
+        let invalid_characters = ["!", "#", "$", "%", "&"];
 
-        let contactlink = ContactLink::builder()
-            .name("My Contact Link 1")
-            .url(&valid_url)
-            .build();
-        assert!(contactlink.is_ok());
+        let build_and_assert = |name: &str, should_succeed: bool| {
+            let result = ContactLink::builder().name(name).url(&valid_url).build();
 
-        let contatlink2 = ContactLink::builder()
-            .name("My Contact Link 1!")
-            .url(&valid_url)
-            .build();
-        assert!(contatlink2.is_err());
+            match should_succeed {
+                true => assert!(result.is_ok(), "Expected OK for valid name: {}", name),
+                false => assert!(result.is_err(), "Expected Err for invalid name: {}", name),
+            }
+        };
 
-        let contatlink3 = ContactLink::builder()
-            .name("My Contact Link 1#")
-            .url(&valid_url)
-            .build();
-        assert!(contatlink3.is_err());
+        build_and_assert(base_name, true);
 
-        let contatlink4 = ContactLink::builder()
-            .name("My Contact Link 1$")
-            .url(&valid_url)
-            .build();
-        assert!(contatlink4.is_err());
-
-        let contatlink5 = ContactLink::builder()
-            .name("My Contact Link 1%")
-            .url(&valid_url)
-            .build();
-        assert!(contatlink5.is_err());
-
-        let contatlink6 = ContactLink::builder()
-            .name("My Contact Link 1&")
-            .url(&valid_url)
-            .build();
-        assert!(contatlink6.is_err());
+        for invalid_char in invalid_characters.iter() {
+            let invalid_name = format!("{}{}", base_name, invalid_char);
+            build_and_assert(&invalid_name, false);
+        }
     }
 }
