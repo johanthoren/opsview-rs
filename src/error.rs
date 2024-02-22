@@ -120,6 +120,9 @@ pub enum OpsviewConfigError {
     #[error("Invalid calculate_rate: Must be one of 'no', 'per_second', 'per_minute', 'per_hour'")]
     InvalidCalculateRate,
 
+    #[error("Invalid HashtagStyle: '{0}'")]
+    InvalidHashtagStyle(String),
+
     #[error("Invalid IP: {0}")]
     InvalidIP(String),
 

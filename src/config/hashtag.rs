@@ -1,7 +1,9 @@
 use super::ServiceCheck;
 use crate::config::{Host, HostRef, Role, RoleRef, ServiceCheckRef};
 use crate::{prelude::*, util::*};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value;
+use std::str::FromStr;
 use std::sync::Arc;
 
 /// Represents a [Hashtag](https://docs.itrsgroup.com/docs/opsview/6.8.9/configuration/hashtags/hashtags/index.html#Heading-overview) entity in Opsview.
@@ -116,10 +118,13 @@ pub struct Hashtag {
     )]
     pub show_contextual_menus: Option<bool>,
 
-    // TODO: Add validation of this field.
-    /// A string representing the visual style of the `Hashtag`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub style: Option<String>,
+    /// A `HashtagStyle` variant representing the visual style of the `Hashtag`.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_hashtag_style",
+        default
+    )]
+    pub style: Option<HashtagStyle>,
 
     // Read-only fields --------------------------------------------------------------------------//
     /// The unique identifier of the `Hashtag`.
@@ -286,7 +291,7 @@ pub struct HashtagBuilder {
     roles: Option<ConfigRefMap<RoleRef>>,
     servicechecks: Option<ConfigRefMap<ServiceCheckRef>>,
     show_contextual_menus: Option<bool>,
-    style: Option<String>,
+    style: Option<HashtagStyle>,
 }
 
 impl Default for HashtagBuilder {
@@ -552,9 +557,9 @@ impl HashtagBuilder {
     /// Sets the `style` field.
     ///
     /// # Arguments
-    /// * `style` - String representing the visual style of the `Hashtag`.
-    pub fn style(mut self, style: &str) -> Self {
-        self.style = Some(style.to_string());
+    /// * `style` - `HashtagStyle` variant representing the visual style of the `Hashtag`.
+    pub fn style(mut self, style: HashtagStyle) -> Self {
+        self.style = Some(style);
         self
     }
 }
@@ -618,6 +623,51 @@ impl From<Arc<Hashtag>> for HashtagRef {
 impl From<&ConfigObjectMap<Hashtag>> for ConfigRefMap<HashtagRef> {
     fn from(hashtags: &ConfigObjectMap<Hashtag>) -> Self {
         ref_map_from(hashtags)
+    }
+}
+
+/// Display style for the hashtag detail view.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+#[allow(missing_docs)]
+pub enum HashtagStyle {
+    GroupByHost,
+    GroupByService,
+    HostSummary,
+    ErrorsAndHostCells,
+    Performance,
+}
+
+impl FromStr for HashtagStyle {
+    type Err = OpsviewConfigError;
+    fn from_str(s: &str) -> Result<Self, OpsviewConfigError> {
+        match s {
+            "group_by_host" => Ok(HashtagStyle::GroupByHost),
+            "group_by_service" => Ok(HashtagStyle::GroupByService),
+            "host_summary" => Ok(HashtagStyle::HostSummary),
+            "errors_and_host_cells" => Ok(HashtagStyle::ErrorsAndHostCells),
+            "performance" => Ok(HashtagStyle::Performance),
+            _ => Err(OpsviewConfigError::InvalidHashtagStyle(s.to_string())),
+        }
+    }
+}
+
+fn deserialize_hashtag_style<'de, D>(deserializer: D) -> Result<Option<HashtagStyle>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+
+    match value {
+        Value::Null => Ok(None),
+        Value::String(ref s) if s == "null" => Ok(None),
+        _ => {
+            let maybe_style = HashtagStyle::deserialize(value)
+                .map(Some)
+                .map_err(serde::de::Error::custom);
+
+            maybe_style
+        }
     }
 }
 
