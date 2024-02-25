@@ -8,10 +8,10 @@
 
 The *opsview* crate is a Rust library designed to interact with the [Opsview
 monitoring software](https://www.itrsgroup.com/infrastructure-monitoring). It
-provides a comprehensive API for handling Opsview objects such as hosts, service
-checks, host groups, and more. The initial focus is on the *client* and *config*
-modules which enables the user to perform all kinds of object configuration
-management using this Rust library.
+provides a comprehensive coverage of the Opsview REST API and allows you to
+handle Opsview objects such as hosts, service checks, host groups, and more. The
+initial focus is on the *client* and *config* modules which enables the user to
+perform all kinds of object configuration management using this Rust library.
 
 ## Project Status
 
@@ -21,8 +21,9 @@ It is not yet complete.
 ## Features
 
 - Comprehensive coverage of Opsview objects: Hosts, Service Checks, Host Groups,
-  etc.
-- Structured builders for creating and configuring Opsview objects.
+  etc. All objects in the configuration API are available as native Rust
+  objects.
+- Builder pattern objects for creating and configuring Opsview objects.
 - Asynchronous API interactions with built-in error handling.
 - Custom serialization and deserialization for Opsview API compatibility.
 
@@ -59,7 +60,9 @@ async fn main() {
 
 This allows you to write robust solutions with fewer errors.
 
-Adding these checks is a priority but still a work in progress.
+Adding these checks is a priority but still a work in progress. All fields
+missing validation are marked with a TODO in the source code. If you find one
+that doesn't, please let me know.
 
 ## Basic Usage
 
@@ -68,8 +71,8 @@ Opsview objects.
 
 All configuration related objects such as `Hashtag`, `Host`, `ServiceCheck` and
 so on are represented as native Rust structs with the trait `ConfigObject`.
-These all also have the `Builder` trait which defines the `builder()` function
-which will initiate a new builder object.
+These all have the `Builder` trait which defines the `builder()` function which
+will initiate a new builder object.
 
 The standard pattern for creating a new object is to use the associated
 `builder()` function of the type of `ConfigObject` that you want to create to
@@ -77,6 +80,10 @@ create a new builder, then chain the builder's methods to configure the object,
 and finally call `build()` to create the object. Using the `build()` method will
 give you some assurances that the `ConfigObject` that you are trying to create
 is valid.
+
+Note that there are no *online* checks when building the object, you will still
+have to check for existing names, etc, at some point. But it will force you to
+populate all required fields with valid data.
 
 It is generally discouraged to create `ConfigObject` structs directly, as this
 may result in invalid objects that cannot be used with the Opsview API. These
