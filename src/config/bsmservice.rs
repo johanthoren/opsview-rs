@@ -1,4 +1,4 @@
-use super::{BSMComponent, BSMComponentRef};
+use super::{BSMComponent, BSMComponentRef, MonitoringCluster, MonitoringClusterRef};
 use crate::{prelude::*, util::*};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -85,6 +85,12 @@ pub struct BSMService {
     /// A collection of [`BSMComponent`] objects that are part of this service.
     #[serde(alias = "business_components")]
     pub components: Option<ConfigRefMap<BSMComponentRef>>,
+
+    // Optional fields ---------------------------------------------------------------------------//
+    /// A reference to the [`MonitoringCluster`] which will handle the notifications for the
+    /// service.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub monitoring_cluster: Option<MonitoringClusterRef>,
 
     // Read-only fields --------------------------------------------------------------------------//
     /// The unique identifier of the BSMService.
@@ -230,6 +236,7 @@ impl PersistentMap for ConfigObjectMap<BSMService> {
 pub struct BSMServiceBuilder {
     name: Option<String>,
     components: Option<ConfigRefMap<BSMComponentRef>>,
+    monitoring_cluster: Option<MonitoringClusterRef>,
 }
 
 impl Builder for BSMServiceBuilder {
@@ -267,6 +274,7 @@ impl Builder for BSMServiceBuilder {
         Ok(BSMService {
             name: validate_and_trim_bsmservice_name(&name)?,
             components: Some(components),
+            monitoring_cluster: self.monitoring_cluster,
             id: None,
             ref_: None,
             uncommitted: None,
@@ -278,6 +286,12 @@ impl BSMServiceBuilder {
     /// Clears the components field.
     pub fn clear_components(mut self) -> Self {
         self.components = None;
+        self
+    }
+
+    /// Clears the `monitoring_cluster` field.
+    pub fn clear_monitoring_cluster(mut self) -> Self {
+        self.monitoring_cluster = None;
         self
     }
 
@@ -293,6 +307,16 @@ impl BSMServiceBuilder {
     /// * `components` - Collection of `BSMComponent` objects for the service.
     pub fn components(mut self, components: &ConfigObjectMap<BSMComponent>) -> Self {
         self.components = Some(components.into());
+        self
+    }
+
+    /// A fluent method that sets the `monitoring_cluster` field and returns Self, allowing for
+    /// method chaining.
+    ///
+    /// # Arguments
+    /// * `monitoring_cluster` - [`MonitoringCluster`] which will handle the notifications for the service.
+    pub fn monitoring_cluster(mut self, monitoring_cluster: MonitoringCluster) -> Self {
+        self.monitoring_cluster = Some(MonitoringClusterRef::from(monitoring_cluster));
         self
     }
 }

@@ -5,7 +5,9 @@
 //! Component is a building block for creating [BSM
 //! Services](https://docs.itrsgroup.com/docs/opsview/current/monitoring/business-service-monitoring/create-business-service/index.html#create-a-business-service).
 
-use super::{Host, HostRef, HostTemplate, HostTemplateRef};
+use super::{
+    Host, HostRef, HostTemplate, HostTemplateRef, MonitoringCluster, MonitoringClusterRef,
+};
 use crate::{prelude::*, util::*};
 use lazy_static::lazy_static;
 use log::debug;
@@ -116,6 +118,12 @@ pub struct BSMComponent {
     /// * 100.00
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quorum_pct: Option<String>,
+
+    // Optional fields ---------------------------------------------------------------------------//
+    /// A reference to the [`MonitoringCluster`] which will handle the notifications for the
+    /// component.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub monitoring_cluster: Option<MonitoringClusterRef>,
 
     // Read-only fields --------------------------------------------------------------------------//
     /// Unix Timestamp indicating when the icon was last updated, or 0 if there is no icon.
@@ -282,6 +290,7 @@ pub struct BSMComponentBuilder {
     host_template_id: Option<u64>,
     hosts: Option<ConfigRefMap<HostRef>>,
     quorum_pct: Option<String>,
+    monitoring_cluster: Option<MonitoringClusterRef>,
 }
 
 impl Builder for BSMComponentBuilder {
@@ -327,6 +336,7 @@ impl Builder for BSMComponentBuilder {
             name: validate_and_trim_bsmcomponent_name(&name)?,
             host_template: Some(host_template),
             host_template_id: self.host_template_id,
+            monitoring_cluster: self.monitoring_cluster,
             quorum_pct: Some(validated_pct_and_ratio(&quorum_pct, hosts.len())?),
             hosts: Some(hosts),
             // Read-only fields
@@ -354,6 +364,12 @@ impl BSMComponentBuilder {
     /// Clears the `hosts` field.
     pub fn clear_hosts(mut self) -> Self {
         self.hosts = None;
+        self
+    }
+
+    /// Clears the `monitoring_cluster` field.
+    pub fn clear_monitoring_cluster(mut self) -> Self {
+        self.monitoring_cluster = None;
         self
     }
 
@@ -410,6 +426,16 @@ impl BSMComponentBuilder {
         }
 
         self.hosts = Some(hosts.into());
+        self
+    }
+
+    /// A fluent method that sets the `monitoring_cluster` field and returns Self, allowing for
+    /// method chaining.
+    ///
+    /// # Arguments
+    /// * `monitoring_cluster` - [`MonitoringCluster`] which will handle the notifications for the component.
+    pub fn monitoring_cluster(mut self, monitoring_cluster: MonitoringCluster) -> Self {
+        self.monitoring_cluster = Some(MonitoringClusterRef::from(monitoring_cluster));
         self
     }
 
