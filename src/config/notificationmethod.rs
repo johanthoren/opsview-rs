@@ -43,7 +43,6 @@ pub struct NotificationMethod {
     )]
     pub active: Option<bool>,
 
-    // TODO: Add validation of this field.
     /// The command to execute for the `NotificationMethod`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
@@ -238,11 +237,13 @@ impl Builder for NotificationMethodBuilder {
     /// * `name not set` - The required `name` field was not set.
     fn build(self) -> Result<Self::ConfigObject, OpsviewConfigError> {
         let name = require_field(&self.name, "name")?;
+        let validated_command =
+            validate_opt_string(self.command, validate_and_trim_notification_command)?;
 
         Ok(NotificationMethod {
             name: validate_and_trim_notificationmethod_name(&name)?,
             active: self.active,
-            command: self.command,
+            command: validated_command,
             contact_variables: self.contact_variables,
             master: self.master,
             namespace: self.namespace,

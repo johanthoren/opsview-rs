@@ -296,6 +296,11 @@ pub fn validate_and_trim_netflowcollector_name(name: &str) -> Result<String, Ops
     validate_trimmed_string(name, 1, 64, &INLINE_FREE_TEXT_REGEX)
 }
 
+pub fn validate_and_trim_notification_command(command: &str) -> Result<String, OpsviewConfigError> {
+    contains_only_allowed_characters(command, &['$', '`', '(', ')', '/', '!', '*', '?', '^'])?;
+    validate_trimmed_string(command, 0, 16000, &INLINE_FREE_TEXT_REGEX)
+}
+
 pub fn validate_and_trim_notificationmethod_name(name: &str) -> Result<String, OpsviewConfigError> {
     validate_trimmed_string(name, 1, 64, &NOTIFICATIONMETHOD_NAME_REGEX)
 }
@@ -641,4 +646,27 @@ mod tests {
         assert!(validate_and_trim_notificationprofile_name("N!").is_err());
         assert!(validate_and_trim_notificationprofile_name(&"N".repeat(129)).is_err());
     }
+
+    #[test]
+    fn test_is_valid_notification_command() {
+        // Test valid commands
+        assert!(validate_and_trim_notification_command("echo 1").is_ok());
+        assert!(validate_and_trim_notification_command(&"a".repeat(16000)).is_ok());
+
+        // Test invalid commands
+        assert!(validate_and_trim_notification_command(&"a".repeat(16001)).is_err());
+        assert!(validate_and_trim_notification_command("echo $1a").is_err());
+        assert!(validate_and_trim_notification_command("echo `1a`").is_err());
+        assert!(validate_and_trim_notification_command("echo (1a)").is_err());
+        assert!(validate_and_trim_notification_command("echo /1a").is_err());
+        assert!(validate_and_trim_notification_command("echo !1a").is_err());
+        assert!(validate_and_trim_notification_command("echo *1a").is_err());
+        assert!(validate_and_trim_notification_command("echo ?1a").is_err());
+        assert!(validate_and_trim_notification_command("echo ^1a").is_err());
+    }
 }
+
+// pub fn validate_and_trim_notification_command(command: &str) -> Result<String, OpsviewConfigError> {
+//     contains_only_allowed_characters(command, &['$', '`', '(', ')', '/', '!', '*', '?', '^'])?;
+//     validate_trimmed_string(command, 0, 16000, &INLINE_FREE_TEXT_REGEX)
+// }
