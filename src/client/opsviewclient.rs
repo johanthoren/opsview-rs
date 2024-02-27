@@ -782,7 +782,7 @@ impl OpsviewClient {
     /// * `T` - The type of object to be retrieved.
     ///
     /// # Returns
-    /// A `Result` wrapping an `ConfigObjectMap` containing the objects on the Opsview system at
+    /// A `Result` wrapping a `ConfigObjectMap<T>` containing the objects on the Opsview system at
     /// the specified path.
     ///
     /// # Errors
