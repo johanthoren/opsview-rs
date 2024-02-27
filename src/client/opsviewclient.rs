@@ -1,7 +1,6 @@
 //! # Opsview Client
 //! Contains the [`OpsviewClient`] struct and methods for interacting with the Opsview API.
 use crate::{config::*, prelude::*};
-use log::{debug, error};
 use reqwest::{self, StatusCode};
 use serde_json::{json, Value};
 use url::Url;
@@ -185,7 +184,6 @@ impl OpsviewClient {
             url.to_string()
         };
 
-        debug!("Authenticating with Opsview API at {}", &url_with_https);
         let client_builder = reqwest::Client::builder();
 
         let client_builder = if ignore_cert {
@@ -207,11 +205,8 @@ impl OpsviewClient {
                 "Failed to authenticate with status code: {}",
                 auth_response.status()
             );
-            error!("{}", error_message);
             return Err(OpsviewClientError::AuthError(error_message));
         }
-
-        debug!("Successfully authenticated with Opsview API");
 
         let token = auth_response
             .json::<Value>()
@@ -362,7 +357,6 @@ impl OpsviewClient {
             "pending" => Ok(true),
             _ => {
                 let error_message = format!("Unexpected response from Opsview: '{}'", status);
-                error!("{}", error_message);
                 Err(OpsviewClientError::AuthError(error_message))
             }
         }
@@ -797,51 +791,39 @@ impl OpsviewClient {
         &self,
     ) -> Result<ConfigObjectMap<T>, OpsviewClientError> {
         let path: String = T::config_path().ok_or(OpsviewClientError::NoConfigPath)?;
-        let mut summary_totalrows: Option<u64>;
+        let mut summary_totalrows: Option<u64> = None;
         let mut all_objects: ConfigObjectMap<T> = ConfigObjectMap::new();
         let mut page: u64 = 1;
         loop {
-            let binding;
+            let paged_path_binding;
             let paged_path = match page {
                 1 => path.as_str(),
                 _ => {
-                    binding = format!("{}?page={}", path, page);
-                    binding.as_str()
+                    paged_path_binding = format!("{}?page={}", path, page);
+                    paged_path_binding.as_str()
                 }
             };
 
             let response = self.get(paged_path).await?;
-            let summary = response.get("summary");
+            let summary = parse_summary(&response)?;
 
-            // TODO: Add error handling and/or logging for missing summary.
-            // TODO: Add error handling and/or logging for missing totalpages.
-            // TODO: Add error handling and/or logging for totalpages changing between pages.
-            // TODO: Add error handling and/or logging for unexpected page number in summary.
-
-            let totalpages: u64 = summary
-                .and_then(|s| s.get("totalpages"))
-                .and_then(|tp| {
-                    tp.as_str()
-                        .expect("Unable to parse 'totalpages' from 'summary'")
-                        .parse::<u64>()
-                        .ok()
-                })
-                .unwrap_or(1);
-
-            summary_totalrows = summary.and_then(|s| s.get("totalrows")).and_then(|to| {
-                to.as_str()
-                    .expect("Unable to parse 'totalrows' from 'summary'")
-                    .parse::<u64>()
-                    .map_err(|e| {
-                        error!("Error while parsing 'totalrows' from 'summary': {}", e);
-                    })
-                    .ok()
-            });
+            match summary_totalrows {
+                None => {
+                    summary_totalrows = Some(summary.totalrows);
+                }
+                Some(st) if st != summary.totalrows => {
+                    return Err(OpsviewClientError::RowCountMismatch {
+                        old: st,
+                        new: summary.totalrows,
+                    });
+                }
+                Some(_) => (),
+            }
 
             let objects = response
                 .get("list")
                 .ok_or(OpsviewClientError::ObjectNotFound(format!(
-                    "ConfigObject '{}' not found",
+                    "'{}' not found",
                     paged_path
                 )))?
                 .as_array()
@@ -854,23 +836,20 @@ impl OpsviewClient {
                 serde_json::from_value(Value::Array(objects.to_vec()))?;
             all_objects.extend(&mut coll);
 
-            if page == totalpages {
+            if page == summary.totalpages {
                 break;
-            } else {
-                page += 1;
             }
+
+            page += 1;
         }
 
-        match summary_totalrows {
-            Some(st) if st != all_objects.len() as u64 => {
-                error!(
-                    "Total rows in summary ({}) does not match total objects in all_objects ({}).",
-                    st,
-                    all_objects.len()
-                );
+        if let Some(st) = summary_totalrows {
+            if st != all_objects.len() as u64 {
+                return Err(OpsviewClientError::RowCountMismatch {
+                    old: st,
+                    new: all_objects.len() as u64,
+                });
             }
-            None => debug!("['summary']['totalrows'] is None"),
-            _ => (),
         }
 
         Ok(all_objects)
@@ -1832,6 +1811,39 @@ async fn handle_http_response(response: reqwest::Response) -> Result<Value, Opsv
             ))
         }
     }
+}
+
+struct Summary {
+    pub totalpages: u64,
+    pub totalrows: u64,
+}
+
+fn required_response_field(response: &Value, field: &str) -> Result<Value, OpsviewClientError> {
+    match response.get(field) {
+        Some(v) => Ok(v.clone()),
+        None => Err(OpsviewClientError::MissingResponseField(field.to_string())),
+    }
+}
+
+fn summary_value_as_u64(summary: &Value, field: &str) -> Result<u64, OpsviewClientError> {
+    match summary.get(field) {
+        None => Err(OpsviewClientError::MissingResponseField(field.to_string())),
+        Some(v) => match v.as_str() {
+            None => Err(OpsviewClientError::TypeParseError(
+                field.to_string(),
+                "&str".to_string(),
+            )),
+            Some(s) => Ok(s.parse::<u64>()?),
+        },
+    }
+}
+
+fn parse_summary(response: &Value) -> Result<Summary, OpsviewClientError> {
+    let summary = required_response_field(response, "summary")?;
+    Ok(Summary {
+        totalpages: summary_value_as_u64(&summary, "totalpages")?,
+        totalrows: summary_value_as_u64(&summary, "totalrows")?,
+    })
 }
 
 #[cfg(test)]

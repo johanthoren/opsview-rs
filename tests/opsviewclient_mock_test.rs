@@ -1,49 +1,11 @@
 mod api_responses;
 extern crate opsview;
 use crate::api_responses::*;
-use lazy_static::lazy_static;
-use log::{Log, Metadata, Record, SetLoggerError};
 use mockito::{Server, ServerGuard};
 use opsview::client::OpsviewClient;
 use opsview::config::*;
 use opsview::prelude::*;
 use pretty_assertions::assert_eq;
-use std::sync::{Mutex, MutexGuard};
-
-// A simple logger that captures logs to a global buffer
-struct TestLogger;
-lazy_static! {
-    static ref LOGS: Mutex<Vec<String>> = Mutex::new(Vec::new());
-}
-
-impl Log for TestLogger {
-    fn enabled(&self, _: &Metadata) -> bool {
-        true
-    }
-
-    fn log(&self, record: &Record) {
-        LOGS.lock().unwrap().push(format!("{}", record.args()));
-    }
-
-    fn flush(&self) {}
-}
-
-fn setup_logger() -> Result<(), SetLoggerError> {
-    log::set_boxed_logger(Box::new(TestLogger))
-        .map(|()| log::set_max_level(log::LevelFilter::Debug))
-}
-
-fn assert_expected_logs(logs: MutexGuard<Vec<String>>) {
-    assert_no_error_for_row_count_not_matching_object_count(logs)
-}
-
-fn assert_no_error_for_row_count_not_matching_object_count(logs: MutexGuard<Vec<String>>) {
-    // Assert that the logs do not contain an error indicating that the total number of rows as
-    // listed in the summary does not match the number of objects collected.
-    assert!(logs
-        .iter()
-        .any(|log| !log.contains("Total objects in summary (")));
-}
 
 /// Returns a ServerGuard that can be used to mock Opsview API responses.
 /// Common responses are already mocked, in this case the login response.
@@ -61,7 +23,6 @@ fn setup_mock_server() -> ServerGuard {
 
 #[tokio::test]
 async fn test_get_all_bsmcomponent_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/bsmcomponent")
@@ -79,19 +40,13 @@ async fn test_get_all_bsmcomponent_configs_mock() -> Result<(), OpsviewClientErr
 
     let components = ov.get_all_bsmcomponent_configs().await;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(components.is_ok());
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_bsmservice_config_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/bsmservice?s.name=BSM%201")
@@ -120,21 +75,15 @@ async fn test_get_bsmservice_config_mock() -> Result<(), OpsviewClientError> {
         .get("/rest/config/businesscomponent/2")
         .unwrap();
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert_eq!(bsmservice.name, "BSM 1");
     assert_eq!(component_1.name(), "Component 1");
     assert_eq!(component_2.name(), "Component 2");
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_bsmservice_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/bsmservice")
@@ -165,9 +114,6 @@ async fn test_get_all_bsmservice_configs_mock() -> Result<(), OpsviewClientError
         .get("/rest/config/businesscomponent/2")
         .unwrap();
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!services.is_empty());
     assert_eq!(services.len(), 1);
     assert_eq!(service_1.name, "BSM 1");
@@ -175,14 +121,11 @@ async fn test_get_all_bsmservice_configs_mock() -> Result<(), OpsviewClientError
     assert_eq!(component_1.name(), "Component 1");
     assert_eq!(component_2.name(), "Component 2");
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_contact_config_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/contact?s.name=admin")
@@ -199,9 +142,6 @@ async fn test_get_contact_config_mock() -> Result<(), OpsviewClientError> {
         .await?;
 
     let contact = ov.get_contact_config("admin").await?;
-
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
 
     assert_eq!(contact.name, "admin");
     assert_eq!(contact.id, Some(1));
@@ -227,14 +167,11 @@ async fn test_get_contact_config_mock() -> Result<(), OpsviewClientError> {
         "/rest/config/notificationprofile/1",
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_contact_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/contact")
@@ -255,9 +192,6 @@ async fn test_get_all_contact_configs_mock() -> Result<(), OpsviewClientError> {
         .get("anonymous-guest")
         .expect("No contact named 'anonymous-guest'");
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!contacts.is_empty());
     assert_eq!(contacts.len(), 3);
     assert_eq!(anonymous_guest.name, "anonymous-guest");
@@ -267,14 +201,11 @@ async fn test_get_all_contact_configs_mock() -> Result<(), OpsviewClientError> {
     );
     assert_eq!(anonymous_guest.fullname, Some("Guest".to_string()));
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_hashtag_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/keyword")
@@ -292,19 +223,13 @@ async fn test_get_all_hashtag_configs_mock() -> Result<(), OpsviewClientError> {
 
     let hashtags = ov.get_all_hashtag_configs().await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!hashtags.is_empty());
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_host_config_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/host?s.name=opsview")
@@ -322,9 +247,6 @@ async fn test_get_host_config_mock() -> Result<(), OpsviewClientError> {
 
     let host = ov.get_host_config("opsview").await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert_eq!(host.name, "opsview");
     assert_eq!(
         host.check_command
@@ -341,14 +263,11 @@ async fn test_get_host_config_mock() -> Result<(), OpsviewClientError> {
     assert_eq!(host.retry_check_interval, Some(60));
     assert_eq!(host.check_attempts, Some(2));
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_host_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/host")
@@ -367,9 +286,6 @@ async fn test_get_all_host_configs_mock() -> Result<(), OpsviewClientError> {
     let hosts = ov.get_all_host_configs().await?;
     let host_0 = hosts.get("Amer-Finance-Environment").unwrap();
     let host_48 = hosts.get("opsview").unwrap();
-
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
 
     assert!(!hosts.is_empty());
     assert_eq!(hosts.len(), 48);
@@ -420,14 +336,11 @@ async fn test_get_all_host_configs_mock() -> Result<(), OpsviewClientError> {
         "ping"
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_hostcheckcommand_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/hostcheckcommand")
@@ -445,12 +358,7 @@ async fn test_get_all_hostcheckcommand_configs_mock() -> Result<(), OpsviewClien
 
     let commands = ov.get_all_hostcheckcommand_configs().await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!commands.is_empty());
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
@@ -474,7 +382,6 @@ async fn test_get_all_hostcheckcommand_configs_mock() -> Result<(), OpsviewClien
 
 #[tokio::test]
 async fn test_get_all_hostgroup_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/hostgroup")
@@ -494,9 +401,6 @@ async fn test_get_all_hostgroup_configs_mock() -> Result<(), OpsviewClientError>
 
     let hostgroup_1 = hostgroups.get("Opsview,").unwrap();
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!hostgroups.is_empty());
     assert_eq!(hostgroups.len(), 14);
     assert_eq!(hostgroup_1.name, "Opsview");
@@ -506,14 +410,11 @@ async fn test_get_all_hostgroup_configs_mock() -> Result<(), OpsviewClientError>
         "/rest/config/hostgroup/1"
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_hosticon_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/hosticons")
@@ -531,19 +432,13 @@ async fn test_get_all_hosticon_configs_mock() -> Result<(), OpsviewClientError> 
 
     let hosticons = ov.get_all_hosticon_configs().await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!hosticons.is_empty());
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_hosttemplate_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/hosttemplate")
@@ -579,19 +474,13 @@ async fn test_get_all_hosttemplate_configs_mock() -> Result<(), OpsviewClientErr
     let ov = OpsviewClient::new(&s.url(), "username", "password", false).await?;
     let hosttemplates = ov.get_all_hosttemplate_configs().await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!hosttemplates.is_empty());
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_monitoringcluster_config_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/monitoringcluster?s.name=collectors-ny")
@@ -609,9 +498,6 @@ async fn test_get_monitoringcluster_config_mock() -> Result<(), OpsviewClientErr
 
     let cluster = ov.get_monitoringcluster_config("collectors-ny").await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert_eq!(cluster.name, "collectors-ny");
     assert_eq!(cluster.id, Some(2));
     assert_eq!(
@@ -619,14 +505,11 @@ async fn test_get_monitoringcluster_config_mock() -> Result<(), OpsviewClientErr
         "/rest/config/monitoringcluster/2"
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_monitoringcluster_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/monitoringcluster")
@@ -645,9 +528,6 @@ async fn test_get_all_monitoringcluster_configs_mock() -> Result<(), OpsviewClie
     let clusters = ov.get_all_monitoringcluster_configs().await?;
     let cluster_1 = clusters.get("Master Monitoring Server").unwrap();
     let cluster_2 = clusters.get("collectors-ny").unwrap();
-
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
 
     assert!(!clusters.is_empty());
     assert_eq!(clusters.len(), 2);
@@ -676,14 +556,11 @@ async fn test_get_all_monitoringcluster_configs_mock() -> Result<(), OpsviewClie
         47
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_notificationmethod_config_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/notificationmethod?s.name=Email")
@@ -701,9 +578,6 @@ async fn test_get_notificationmethod_config_mock() -> Result<(), OpsviewClientEr
 
     let method = ov.get_notificationmethod_config("Email").await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert_eq!(method.name, "Email");
     assert_eq!(method.id, Some(3));
     assert_eq!(
@@ -720,14 +594,11 @@ async fn test_get_notificationmethod_config_mock() -> Result<(), OpsviewClientEr
         0
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_notificationmethod_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/notificationmethod")
@@ -747,9 +618,6 @@ async fn test_get_all_notificationmethod_configs_mock() -> Result<(), OpsviewCli
     let method_1 = methods.get("Email").unwrap();
     let method_2 = methods.get("SMS Notification Module").unwrap();
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!methods.is_empty());
     assert_eq!(methods.len(), 20);
     assert_eq!(method_1.name, "Email");
@@ -765,14 +633,11 @@ async fn test_get_all_notificationmethod_configs_mock() -> Result<(), OpsviewCli
         "/rest/config/notificationmethod/2"
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_plugin_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/plugin")
@@ -815,19 +680,13 @@ async fn test_get_all_plugin_configs_mock() -> Result<(), OpsviewClientError> {
 
     let plugins = ov.get_all_plugin_configs().await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!plugins.is_empty());
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_role_config_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/role?s.name=Administrator")
@@ -845,22 +704,16 @@ async fn test_get_role_config_mock() -> Result<(), OpsviewClientError> {
 
     let role = ov.get_role_config("Administrator").await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert_eq!(role.name, "Administrator");
     assert_eq!(role.id, Some(10));
     assert_eq!(role.ref_.as_ref().unwrap(), "/rest/config/role/10");
     assert_eq!(role.uncommitted, Some(false));
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_role_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/role")
@@ -883,9 +736,6 @@ async fn test_get_all_role_configs_mock() -> Result<(), OpsviewClientError> {
     let role_1 = roles.get("Administrator").unwrap();
     let role_2 = roles.get("Anonymous Guest").unwrap();
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!roles.is_empty());
     assert_eq!(roles.len(), 9);
     assert_eq!(role_1.name, "Administrator");
@@ -903,14 +753,11 @@ async fn test_get_all_role_configs_mock() -> Result<(), OpsviewClientError> {
     assert_eq!(role_2.id, Some(16));
     assert_eq!(role_2.ref_.as_ref().unwrap(), "/rest/config/role/16");
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_servicegroup_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/servicegroup")
@@ -952,9 +799,6 @@ async fn test_get_all_servicegroup_configs_mock() -> Result<(), OpsviewClientErr
         .get("Application - Active Directory - Address Book")
         .unwrap();
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!servicegroups.is_empty());
     assert_eq!(servicegroups.len(), 215);
     assert_eq!(
@@ -967,14 +811,11 @@ async fn test_get_all_servicegroup_configs_mock() -> Result<(), OpsviewClientErr
         "/rest/config/servicegroup/136"
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_servicecheck_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/servicecheck")
@@ -1137,9 +978,6 @@ async fn test_get_all_servicecheck_configs_mock() -> Result<(), OpsviewClientErr
 
     let servicechecks = ov.get_all_servicecheck_configs().await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!servicechecks.is_empty());
 
     let example_service_1 = servicechecks.get("ACI - APIC - CPU Usage").unwrap();
@@ -1155,14 +993,11 @@ async fn test_get_all_servicecheck_configs_mock() -> Result<(), OpsviewClientErr
     assert_eq!(example_service_2.name, "Uptime Restart");
     assert_eq!(example_service_2.stale_state, Some(ServiceCheckState::Ok));
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_sharednotificationprofile_config_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock(
@@ -1187,9 +1022,6 @@ async fn test_get_sharednotificationprofile_config_mock() -> Result<(), OpsviewC
 
     println!("{:#?}", profile);
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert_eq!(profile.name, "Receive all alerts during work hours");
     assert_eq!(profile.id, Some(2));
     assert_eq!(
@@ -1206,14 +1038,11 @@ async fn test_get_sharednotificationprofile_config_mock() -> Result<(), OpsviewC
         0
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_sharednotificationprofile_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/sharednotificationprofile")
@@ -1234,9 +1063,6 @@ async fn test_get_all_sharednotificationprofile_configs_mock() -> Result<(), Ops
         .get("Receive all alerts during work hours")
         .unwrap();
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!profiles.is_empty());
     assert_eq!(profiles.len(), 1);
     assert_eq!(profile_1.name, "Receive all alerts during work hours");
@@ -1246,14 +1072,11 @@ async fn test_get_all_sharednotificationprofile_configs_mock() -> Result<(), Ops
         "/rest/config/sharednotificationprofile/2"
     );
 
-    assert_expected_logs(logs);
-
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_tenancy_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/tenancy")
@@ -1271,19 +1094,13 @@ async fn test_get_all_tenancy_configs_mock() -> Result<(), OpsviewClientError> {
 
     let tenancies = ov.get_all_tenancy_configs().await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!tenancies.is_empty());
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_timeperiod_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/timeperiod")
@@ -1301,19 +1118,13 @@ async fn test_get_all_timeperiod_configs_mock() -> Result<(), OpsviewClientError
 
     let timeperiods = ov.get_all_timeperiod_configs().await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!timeperiods.is_empty());
-
-    assert_expected_logs(logs);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_get_all_variable_configs_mock() -> Result<(), OpsviewClientError> {
-    let _ = setup_logger();
     let mut s = setup_mock_server();
 
     s.mock("GET", "/rest/config/attribute")
@@ -1346,12 +1157,7 @@ async fn test_get_all_variable_configs_mock() -> Result<(), OpsviewClientError> 
 
     let variables = ov.get_all_variable_configs().await?;
 
-    let logs = LOGS.lock().unwrap();
-    println!("{:#?}", logs);
-
     assert!(!variables.is_empty());
-
-    assert_expected_logs(logs);
 
     Ok(())
 }

@@ -10,7 +10,6 @@ use super::{
 };
 use crate::{prelude::*, util::*};
 use lazy_static::lazy_static;
-use log::debug;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -538,11 +537,6 @@ fn validated_pct_and_ratio(
     percentage: &str,
     number_of_hosts: usize,
 ) -> Result<String, OpsviewConfigError> {
-    debug!(
-        "is_valid_pct_and_ratio: percentage: {}, number_of_hosts: {}",
-        percentage, number_of_hosts
-    );
-
     if percentage == "0.00" {
         return Ok(percentage.to_string());
     }

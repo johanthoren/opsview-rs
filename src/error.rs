@@ -75,6 +75,9 @@ pub enum OpsviewClientError {
     #[error("Missing identifiers: {0}")]
     MissingIdentifiers(String),
 
+    #[error("Missing expected response field: {0}")]
+    MissingResponseField(String),
+
     #[error("No config path set")]
     NoConfigPath,
 
@@ -90,7 +93,13 @@ pub enum OpsviewClientError {
     #[error("Unable to parse response: {0}")]
     ResponseParseError(String),
 
-    #[error("Unable to parse '{0}' as '{1}'")]
+    #[error("Row count mismatch: old: {old}, new: {new}")]
+    RowCountMismatch { old: u64, new: u64 },
+
+    #[error("Row count doesn't match object count: expected {expected}, got {actual}")]
+    RowCountObjectCountMismatch { expected: u64, actual: u64 },
+
+    #[error("Failed to parse '{0} as '{1}'")]
     TypeParseError(String, String),
 
     #[error("Undefined error: {0}")]
