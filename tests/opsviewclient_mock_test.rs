@@ -9,26 +9,28 @@ use pretty_assertions::assert_eq;
 
 /// Returns a ServerGuard that can be used to mock Opsview API responses.
 /// Common responses are already mocked, in this case the login response.
-fn setup_mock_server() -> ServerGuard {
-    let mut server = Server::new();
+async fn setup_mock_server() -> ServerGuard {
+    let mut server = Server::new_async().await;
 
     server
         .mock("POST", "/rest/login")
         .with_status(200)
         .with_body(r#"{"token": "some_auth_token"}"#)
-        .create();
+        .create_async()
+        .await;
 
     server
 }
 
 #[tokio::test]
 async fn test_get_all_bsmcomponent_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/bsmcomponent")
         .with_status(200)
         .with_body(ALL_BSMCOMPONENT_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -47,12 +49,13 @@ async fn test_get_all_bsmcomponent_configs_mock() -> Result<(), OpsviewClientErr
 
 #[tokio::test]
 async fn test_get_bsmservice_config_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/bsmservice?s.name=BSM%201")
         .with_status(200)
         .with_body(BSMSERVICE_CONFIG)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -84,12 +87,13 @@ async fn test_get_bsmservice_config_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_all_bsmservice_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/bsmservice")
         .with_status(200)
         .with_body(ALL_BSMSERVICE_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -126,12 +130,13 @@ async fn test_get_all_bsmservice_configs_mock() -> Result<(), OpsviewClientError
 
 #[tokio::test]
 async fn test_get_contact_config_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/contact?s.name=admin")
         .with_status(200)
         .with_body(CONTACT_CONFIG)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -172,12 +177,13 @@ async fn test_get_contact_config_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_all_contact_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/contact")
         .with_status(200)
         .with_body(ALL_CONTACT_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -206,12 +212,13 @@ async fn test_get_all_contact_configs_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_all_hashtag_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/keyword")
         .with_status(200)
         .with_body(ALL_HASHTAG_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -230,12 +237,13 @@ async fn test_get_all_hashtag_configs_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_host_config_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/host?s.name=opsview")
         .with_status(200)
         .with_body(HOST_CONFIG)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -268,12 +276,13 @@ async fn test_get_host_config_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_all_host_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/host")
         .with_status(200)
         .with_body(ALL_HOST_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -341,12 +350,13 @@ async fn test_get_all_host_configs_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_all_hostcheckcommand_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/hostcheckcommand")
         .with_status(200)
         .with_body(ALL_HOSTCHECKCOMMAND_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -365,12 +375,12 @@ async fn test_get_all_hostcheckcommand_configs_mock() -> Result<(), OpsviewClien
 
 // #[tokio::test]
 // async fn test_get_hostgroup_config_mock() -> Result<(), OpsviewClientError> {
-//     let mut s = setup_mock_server();
+//     let mut s = setup_mock_server().await;
 
-//     s.mock("GET", "/rest/config/hostgroup?s.name=Opsview")
+//     s.await.mock("GET", "/rest/config/hostgroup?s.name=Opsview")
 //         .with_status(200)
 //         .with_body(HOSTGROUP_CONFIG)
-//         .create();
+//         .create_async().await;
 
 //     let ov = OpsviewClient::new(&s.url(), "username", "password").await?;
 //     let hostgroup = ov.get_hostgroup_config("Opsview").await?;
@@ -382,12 +392,13 @@ async fn test_get_all_hostcheckcommand_configs_mock() -> Result<(), OpsviewClien
 
 #[tokio::test]
 async fn test_get_all_hostgroup_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/hostgroup")
         .with_status(200)
         .with_body(ALL_HOSTGROUP_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -415,12 +426,13 @@ async fn test_get_all_hostgroup_configs_mock() -> Result<(), OpsviewClientError>
 
 #[tokio::test]
 async fn test_get_all_hosticon_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/hosticons")
         .with_status(200)
         .with_body(ALL_HOSTICON_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -439,37 +451,43 @@ async fn test_get_all_hosticon_configs_mock() -> Result<(), OpsviewClientError> 
 
 #[tokio::test]
 async fn test_get_all_hosttemplate_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/hosttemplate")
         .with_status(200)
         .with_body(ALL_HOSTTEMPLATE_CONFIGS_PAGE_1)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/hosttemplate?page=2")
         .with_status(200)
         .with_body(ALL_HOSTTEMPLATE_CONFIGS_PAGE_2)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/hosttemplate?page=3")
         .with_status(200)
         .with_body(ALL_HOSTTEMPLATE_CONFIGS_PAGE_3)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/hosttemplate?page=4")
         .with_status(200)
         .with_body(ALL_HOSTTEMPLATE_CONFIGS_PAGE_4)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/hosttemplate?page=5")
         .with_status(200)
         .with_body(ALL_HOSTTEMPLATE_CONFIGS_PAGE_5)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/hosttemplate?page=6")
         .with_status(200)
         .with_body(ALL_HOSTTEMPLATE_CONFIGS_PAGE_6)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::new(&s.url(), "username", "password", false).await?;
     let hosttemplates = ov.get_all_hosttemplate_configs().await?;
@@ -481,12 +499,13 @@ async fn test_get_all_hosttemplate_configs_mock() -> Result<(), OpsviewClientErr
 
 #[tokio::test]
 async fn test_get_monitoringcluster_config_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/monitoringcluster?s.name=collectors-ny")
         .with_status(200)
         .with_body(MONITORINGCLUSTER_CONFIG)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -510,12 +529,13 @@ async fn test_get_monitoringcluster_config_mock() -> Result<(), OpsviewClientErr
 
 #[tokio::test]
 async fn test_get_all_monitoringcluster_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/monitoringcluster")
         .with_status(200)
         .with_body(ALL_MONITORINGCLUSTER_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -561,12 +581,13 @@ async fn test_get_all_monitoringcluster_configs_mock() -> Result<(), OpsviewClie
 
 #[tokio::test]
 async fn test_get_notificationmethod_config_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/notificationmethod?s.name=Email")
         .with_status(200)
         .with_body(NOTIFICATIONMETHOD_CONFIG)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -599,12 +620,13 @@ async fn test_get_notificationmethod_config_mock() -> Result<(), OpsviewClientEr
 
 #[tokio::test]
 async fn test_get_all_notificationmethod_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/notificationmethod")
         .with_status(200)
         .with_body(ALL_NOTIFICATIONMETHOD_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -638,37 +660,43 @@ async fn test_get_all_notificationmethod_configs_mock() -> Result<(), OpsviewCli
 
 #[tokio::test]
 async fn test_get_all_plugin_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/plugin")
         .with_status(200)
         .with_body(ALL_PLUGIN_CONFIGS_PAGE_1)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/plugin?page=2")
         .with_status(200)
         .with_body(ALL_PLUGIN_CONFIGS_PAGE_2)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/plugin?page=3")
         .with_status(200)
         .with_body(ALL_PLUGIN_CONFIGS_PAGE_3)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/plugin?page=4")
         .with_status(200)
         .with_body(ALL_PLUGIN_CONFIGS_PAGE_4)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/plugin?page=5")
         .with_status(200)
         .with_body(ALL_PLUGIN_CONFIGS_PAGE_5)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/plugin?page=6")
         .with_status(200)
         .with_body(ALL_PLUGIN_CONFIGS_PAGE_6)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -687,12 +715,13 @@ async fn test_get_all_plugin_configs_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_role_config_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/role?s.name=Administrator")
         .with_status(200)
         .with_body(ROLE_CONFIG)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -714,12 +743,13 @@ async fn test_get_role_config_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_all_role_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/role")
         .with_status(200)
         .with_body(ALL_ROLE_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -758,32 +788,37 @@ async fn test_get_all_role_configs_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_all_servicegroup_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/servicegroup")
         .with_status(200)
         .with_body(ALL_SERVICEGROUP_CONFIGS_PAGE_1)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicegroup?page=2")
         .with_status(200)
         .with_body(ALL_SERVICEGROUP_CONFIGS_PAGE_2)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicegroup?page=3")
         .with_status(200)
         .with_body(ALL_SERVICEGROUP_CONFIGS_PAGE_3)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicegroup?page=4")
         .with_status(200)
         .with_body(ALL_SERVICEGROUP_CONFIGS_PAGE_4)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicegroup?page=5")
         .with_status(200)
         .with_body(ALL_SERVICEGROUP_CONFIGS_PAGE_5)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -816,157 +851,187 @@ async fn test_get_all_servicegroup_configs_mock() -> Result<(), OpsviewClientErr
 
 #[tokio::test]
 async fn test_get_all_servicecheck_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/servicecheck")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_1)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=2")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_2)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=3")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_3)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=4")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_4)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=5")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_5)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=6")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_6)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=7")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_7)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=8")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_8)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=9")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_9)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=10")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_10)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=11")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_11)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=12")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_12)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=13")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_13)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=14")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_14)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=15")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_15)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=16")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_16)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=17")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_17)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=18")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_18)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=19")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_19)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=20")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_20)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=21")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_21)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=22")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_22)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=23")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_23)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=24")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_24)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=25")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_25)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=26")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_26)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=27")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_27)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=28")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_28)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=29")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_29)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/servicecheck?page=30")
         .with_status(200)
         .with_body(ALL_SERVICECHECK_CONFIGS_PAGE_30)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -998,7 +1063,7 @@ async fn test_get_all_servicecheck_configs_mock() -> Result<(), OpsviewClientErr
 
 #[tokio::test]
 async fn test_get_sharednotificationprofile_config_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock(
         "GET",
@@ -1006,7 +1071,7 @@ async fn test_get_sharednotificationprofile_config_mock() -> Result<(), OpsviewC
     )
     .with_status(200)
     .with_body(SHAREDNOTIFICATIONPROFILE_CONFIG)
-    .create();
+    .create_async().await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -1043,12 +1108,13 @@ async fn test_get_sharednotificationprofile_config_mock() -> Result<(), OpsviewC
 
 #[tokio::test]
 async fn test_get_all_sharednotificationprofile_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/sharednotificationprofile")
         .with_status(200)
         .with_body(ALL_SHAREDNOTIFICATIONPROFILE_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -1077,12 +1143,13 @@ async fn test_get_all_sharednotificationprofile_configs_mock() -> Result<(), Ops
 
 #[tokio::test]
 async fn test_get_all_tenancy_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/tenancy")
         .with_status(200)
         .with_body(ALL_TENANCY_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -1101,12 +1168,13 @@ async fn test_get_all_tenancy_configs_mock() -> Result<(), OpsviewClientError> {
 
 #[tokio::test]
 async fn test_get_all_timeperiod_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/timeperiod")
         .with_status(200)
         .with_body(ALL_TIMEPERIOD_CONFIGS)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
@@ -1125,27 +1193,31 @@ async fn test_get_all_timeperiod_configs_mock() -> Result<(), OpsviewClientError
 
 #[tokio::test]
 async fn test_get_all_variable_configs_mock() -> Result<(), OpsviewClientError> {
-    let mut s = setup_mock_server();
+    let mut s = setup_mock_server().await;
 
     s.mock("GET", "/rest/config/attribute")
         .with_status(200)
         .with_body(ALL_VARIABLE_CONFIGS_PAGE_1)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/attribute?page=2")
         .with_status(200)
         .with_body(ALL_VARIABLE_CONFIGS_PAGE_2)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/attribute?page=3")
         .with_status(200)
         .with_body(ALL_VARIABLE_CONFIGS_PAGE_3)
-        .create();
+        .create_async()
+        .await;
 
     s.mock("GET", "/rest/config/attribute?page=4")
         .with_status(200)
         .with_body(ALL_VARIABLE_CONFIGS_PAGE_4)
-        .create();
+        .create_async()
+        .await;
 
     let ov = OpsviewClient::builder()
         .url(&s.url())
