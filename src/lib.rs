@@ -86,7 +86,6 @@ pub mod instance;
 
 /// The `prelude` module contains the most commonly used types and traits from the `opsview` crate.
 pub mod prelude;
-pub use prelude::*;
 
 /// The `util` module contains utility functions and types used throughout the `opsview` crate.
 pub mod util;

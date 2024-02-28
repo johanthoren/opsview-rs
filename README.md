@@ -92,9 +92,7 @@ objects are primarily used for deserialization from the Opsview API.
 Here's a quick example to get you started with this library:
 
 ```rust,no_run
-use opsview::client::OpsviewClient;
-use opsview::config::Hashtag;
-use opsview::prelude::*;
+use opsview::{client::OpsviewClient, prelude::*, config::Hashtag};
 
 async fn new_hashtag(
   client: &OpsviewClient, 
