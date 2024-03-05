@@ -51,6 +51,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 /// * NETAUDITVIEW
 /// * NTVIEWALL
 #[allow(missing_docs)]
+#[non_exhaustive] // New access control settings may be added in future releases of Opsview.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Access {
     ActionAll(Option<String>),

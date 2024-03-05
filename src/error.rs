@@ -1,6 +1,7 @@
 #![allow(missing_docs)]
 use thiserror::Error;
 
+#[non_exhaustive] // More error types are likely to be added in the future.
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum OpsviewError {
     #[error("Client error: {0}")]
@@ -37,6 +38,7 @@ impl From<&str> for OpsviewError {
     }
 }
 
+#[non_exhaustive]
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum OpsviewClientError {
     #[error("Authentication failed: {0}")]
@@ -112,6 +114,7 @@ pub enum OpsviewClientError {
     UrlParseError(String),
 }
 
+#[non_exhaustive]
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum OpsviewConfigError {
     #[error("Invalid value: {0} does not match regex {1}")]

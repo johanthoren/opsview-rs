@@ -16,6 +16,7 @@ use strum_macros::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 /// Icons are taken from the 4.5 version of the FontAwesome library.
 
 #[allow(missing_docs)]
+#[non_exhaustive] // More icons might be added in future releases of Opsview.
 #[derive(Clone, Debug, PartialEq, Eq, EnumString, VariantNames, AsRefStr, EnumIter, Display)]
 #[strum(serialize_all = "kebab-case")]
 pub enum FontAwesomeIcon {
