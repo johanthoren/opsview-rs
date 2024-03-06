@@ -55,9 +55,29 @@ pub struct HandledCount {
     pub unhandled: Option<u64>,
 }
 
-impl HandledCount {
+/// A trait for summarizing the state of a host or service.
+pub trait StateSummary {
+    /// Returns the number of handled counts.
+    fn handled(&self) -> u64;
+    /// Returns the number of unhandled counts.
+    fn unhandled(&self) -> u64;
     /// Returns the total count of handled and unhandled counts.
-    pub fn total(&self) -> u64 {
+    fn total(&self) -> u64;
+}
+
+impl StateSummary for HandledCount {
+    /// Returns the number of handled counts.
+    fn handled(&self) -> u64 {
+        self.handled.unwrap_or(0)
+    }
+
+    /// Returns the number of unhandled counts.
+    fn unhandled(&self) -> u64 {
+        self.unhandled.unwrap_or(0)
+    }
+
+    /// Returns the total count of handled and unhandled counts.
+    fn total(&self) -> u64 {
         self.handled.unwrap_or(0) + self.unhandled.unwrap_or(0)
     }
 }
