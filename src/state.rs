@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Represents the
@@ -33,4 +34,30 @@ pub enum ServiceCheckState {
     /// The service check is in an UNKNOWN state.
     #[serde(rename = "3")]
     Unknown,
+}
+
+/// Represents the accounting of handled and unhandled counts for either a host or service.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Eq, PartialEq)]
+pub struct HandledCount {
+    /// The number of handled counts.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_string_or_number_to_u64",
+        default
+    )]
+    pub handled: Option<u64>,
+    /// The number of unhandled counts.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_string_or_number_to_u64",
+        default
+    )]
+    pub unhandled: Option<u64>,
+}
+
+impl HandledCount {
+    /// Returns the total count of handled and unhandled counts.
+    pub fn total(&self) -> u64 {
+        self.handled.unwrap_or(0) + self.unhandled.unwrap_or(0)
+    }
 }
