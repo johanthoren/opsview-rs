@@ -44,11 +44,16 @@ pub struct NotificationMethod {
     pub active: Option<bool>,
 
     /// The command to execute for the `NotificationMethod`.
+    ///
+    /// Must be found at `/opt/opsview/monitoringscripts/notifications/` on the Opsview server.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
 
     // TODO: Add validation of this field.
     /// Contact variables for the `NotificationMethod`.
+    ///
+    /// These are the user specific variable names that are required for the `NotificationMethod` to
+    /// function. Must be a comma-separated list.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contact_variables: Option<String>,
 
@@ -67,6 +72,9 @@ pub struct NotificationMethod {
     pub namespace: Option<String>,
 
     /// [`ConfigRefMap`] of [`VariableValueRef`] objects associated with this `NotificationMethod`.
+    ///
+    /// These would typically hold any non-user specific variables that are required for the
+    /// `NotificationMethod` to function.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub variables: Option<ConfigRefMap<VariableValueRef>>,
 
