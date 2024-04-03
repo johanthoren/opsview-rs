@@ -43,6 +43,8 @@ the `Result`. No need to even connect to the Opsview API.
 Example:
 
 ```rust,no_run
+extern crate opsview;
+extern crate tokio;
 use opsview::config::Hashtag;
 use opsview::prelude::*;
 
@@ -92,6 +94,8 @@ objects are primarily used for deserialization from the Opsview API.
 Here's a quick example to get you started with this library:
 
 ```rust,no_run
+extern crate opsview;
+extern crate tokio;
 use opsview::{client::OpsviewClient, prelude::*, config::Hashtag};
 
 async fn new_hashtag(
@@ -136,6 +140,8 @@ async fn main() {
 A more complex example:
 
 ``` rust,no_run
+extern crate opsview;
+extern crate tokio;
 use opsview::client::OpsviewClient;
 use opsview::config::{Host,Hashtag,HostGroup, HostTemplate};
 use opsview::prelude::*;
