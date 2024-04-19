@@ -39,7 +39,7 @@ criterion = { version = "0.5.1", features = ["async_tokio"] }
 mockito = "1.2.0"
 predicates = "3.0.4"
 pretty_assertions = "1.4.0"
-skeptic = "0.13"
+skeptic = {git = "https://github.com/Erk-/rust-skeptic", rev = "3e6ce6a2ac3313f13723dfa2483042c6bcd812f2"}
 
 [build-dependencies]
-skeptic = "0.13"
+skeptic = {git = "https://github.com/Erk-/rust-skeptic", rev = "3e6ce6a2ac3313f13723dfa2483042c6bcd812f2"}
