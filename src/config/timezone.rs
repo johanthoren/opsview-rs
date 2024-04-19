@@ -31,14 +31,6 @@ impl ConfigObject for TimeZone {
         TimeZoneBuilder::new()
     }
 
-    /// Provides the configuration path for a `TimeZone` object within the Opsview system.
-    ///
-    /// # Returns
-    /// None, as time zones are not configured via the Opsview API.
-    fn config_path() -> Option<String> {
-        None
-    }
-
     /// Returns the unique name of the `TimeZone` object.
     ///
     /// This name is used to identify the `TimeZone` when building the `HashMap` for an

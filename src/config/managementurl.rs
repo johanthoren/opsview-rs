@@ -54,14 +54,6 @@ impl ConfigObject for ManagementURL {
         ManagementURLBuilder::new()
     }
 
-    /// Provides the configuration path for a [`ManagementURL`] object within the Opsview system.
-    ///
-    /// # Returns
-    /// `None` since `ManagementURL` does not have a dedicated configuration path in the API.
-    fn config_path() -> Option<String> {
-        None
-    }
-
     /// Returns the unique name of the [`ManagementURL`] object.
     ///
     /// This name is used to identify the `ManagementURL` when building the `HashMap` for a

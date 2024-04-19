@@ -58,14 +58,6 @@ impl ConfigObject for RancidVendor {
         RancidVendorBuilder::new()
     }
 
-    /// Provides the configuration path for a [`RancidVendor`] object within the Opsview system.
-    ///
-    /// # Returns
-    /// `None` since `RancidVendor` does not have a dedicated configuration path in the API.
-    fn config_path() -> Option<String> {
-        None
-    }
-
     /// Returns the unique name of the [`RancidVendor`] object.
     ///
     /// This name is used to identify the `RancidVendor` when building the `HashMap` for a

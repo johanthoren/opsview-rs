@@ -88,14 +88,6 @@ impl ConfigObject for SNMPTrapRule {
         SNMPTrapRuleBuilder::new()
     }
 
-    /// Provides the configuration path for a [`SNMPTrapRule`] object within the Opsview system.
-    ///
-    /// # Returns
-    /// A string representing the API path where variables are configured.
-    fn config_path() -> Option<String> {
-        None
-    }
-
     /// Returns the unique name of the [`SNMPTrapRule`] object.
     ///
     /// This name is used to identify the `SNMPTrapRule` when building the `HashMap` for an

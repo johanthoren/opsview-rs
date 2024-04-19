@@ -104,7 +104,13 @@ pub trait ConfigObject:
     /// # Returns
     /// An `Option<String>` representing the API path where the object is configured, or `None` if
     /// not applicable.
-    fn config_path() -> Option<String>;
+    fn config_path() -> Option<String> {
+        None
+    }
+
+    // fn optional_columns() -> Option<Vec<String>> {
+    //     None
+    // }
 
     /// Retrieves the unique name of the object.
     ///

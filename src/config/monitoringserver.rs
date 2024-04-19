@@ -58,14 +58,6 @@ impl ConfigObject for MonitoringServer {
         MonitoringServerBuilder::new()
     }
 
-    /// Provides the configuration path for a [`MonitoringServer`] object within the Opsview system.
-    ///
-    /// # Returns
-    /// None, as `MonitoringServer` objects are not directly configurable through the Opsview API.
-    fn config_path() -> Option<String> {
-        None
-    }
-
     /// Returns the unique name of the [`MonitoringServer`] object.
     /// This name is used to identify the `MonitoringServer` when building the `HashMap` for an
     /// [`ConfigObjectMap`].
@@ -119,11 +111,7 @@ impl Persistent for MonitoringServer {
     }
 }
 
-impl PersistentMap for ConfigObjectMap<MonitoringServer> {
-    fn config_path() -> Option<String> {
-        None
-    }
-}
+impl PersistentMap for ConfigObjectMap<MonitoringServer> {}
 
 /// Builder for creating instances of [`MonitoringServer`].
 ///
