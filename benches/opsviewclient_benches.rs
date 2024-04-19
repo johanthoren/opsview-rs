@@ -33,7 +33,7 @@ async fn get_all_host_configs_benchmark() {
         .await
         .unwrap();
 
-    ov.get_all_host_configs().await.unwrap();
+    ov.get_all_host_configs(None).await.unwrap();
 }
 
 fn criterion_benchmark(c: &mut Criterion) {

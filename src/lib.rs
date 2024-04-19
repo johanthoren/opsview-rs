@@ -32,7 +32,7 @@
 //!
 //!    // If it exists already, then fetch it.
 //!    if host_group.exists(&client).await.unwrap() {
-//!        host_group = host_group.fetch(&client).await.unwrap();
+//!        host_group = host_group.fetch(&client, None).await.unwrap();
 //!    } else {
 //!        host_group.create(&client).await.unwrap();
 //!    }
@@ -42,7 +42,7 @@
 //!
 //!    // If it exists already, then fetch it.
 //!    if host_check_command.exists(&client).await.unwrap() {
-//!        host_check_command = host_check_command.fetch(&client).await.unwrap();
+//!        host_check_command = host_check_command.fetch(&client, None).await.unwrap();
 //!    } else {
 //!        host_check_command.create(&client).await.unwrap();
 //!    }

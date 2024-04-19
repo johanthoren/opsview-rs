@@ -112,25 +112,25 @@ impl OpsviewInstance {
         self,
         client: &OpsviewClient,
     ) -> Result<OpsviewInstance, OpsviewClientError> {
-        let bsm_components_future = client.get_all_bsmcomponent_configs();
-        let bsm_services_future = client.get_all_bsmservice_configs();
-        let contacts_future = client.get_all_contact_configs();
-        let host_check_commands_future = client.get_all_hostcheckcommand_configs();
-        let host_groups_future = client.get_all_hostgroup_configs();
-        let host_templates_future = client.get_all_hosttemplate_configs();
-        let hosts_future = client.get_all_host_configs();
-        let monitoring_clusters_future = client.get_all_monitoringcluster_configs();
-        let netflow_collectors_future = client.get_all_netflowcollector_configs();
-        let netflow_sources_future = client.get_all_netflowsource_configs();
-        let notification_methods_future = client.get_all_notificationmethod_configs();
-        let plugins_future = client.get_all_plugin_configs();
-        let service_checks_future = client.get_all_servicecheck_configs();
-        let service_groups_future = client.get_all_servicegroup_configs();
+        let bsm_components_future = client.get_all_bsmcomponent_configs(None);
+        let bsm_services_future = client.get_all_bsmservice_configs(None);
+        let contacts_future = client.get_all_contact_configs(None);
+        let host_check_commands_future = client.get_all_hostcheckcommand_configs(None);
+        let host_groups_future = client.get_all_hostgroup_configs(None);
+        let host_templates_future = client.get_all_hosttemplate_configs(None);
+        let hosts_future = client.get_all_host_configs(None);
+        let monitoring_clusters_future = client.get_all_monitoringcluster_configs(None);
+        let netflow_collectors_future = client.get_all_netflowcollector_configs(None);
+        let netflow_sources_future = client.get_all_netflowsource_configs(None);
+        let notification_methods_future = client.get_all_notificationmethod_configs(None);
+        let plugins_future = client.get_all_plugin_configs(None);
+        let service_checks_future = client.get_all_servicecheck_configs(None);
+        let service_groups_future = client.get_all_servicegroup_configs(None);
         let shared_notification_profiles_future =
-            client.get_all_sharednotificationprofile_configs();
-        let tenancies_future = client.get_all_tenancy_configs();
-        let time_periods_future = client.get_all_timeperiod_configs();
-        let variables_future = client.get_all_variable_configs();
+            client.get_all_sharednotificationprofile_configs(None);
+        let tenancies_future = client.get_all_tenancy_configs(None);
+        let time_periods_future = client.get_all_timeperiod_configs(None);
+        let variables_future = client.get_all_variable_configs(None);
 
         let (
             bsm_components,

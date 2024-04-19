@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-use crate::client::OpsviewClient;
+use crate::client::*;
 pub use crate::error::*;
 pub use crate::state::*;
 use serde::de::{self, DeserializeOwned};
@@ -232,7 +232,7 @@ pub trait Persistent: ConfigObject {
     ///         .name("opsview")
     ///         .build()?;
     ///
-    ///     let api_returned_hashtag = hashtag.fetch(client).await?;
+    ///     let api_returned_hashtag = hashtag.fetch(client, None).await?;
     ///
     ///     assert_eq!(api_returned_hashtag.name, hashtag.name);
     ///     assert!(api_returned_hashtag.id.is_some());
@@ -259,8 +259,8 @@ pub trait Persistent: ConfigObject {
     ///
     ///     assert!(hashtag.id.is_none()); // The builder doesn't set the id field.
     ///
-    ///     let hashtag = hashtag.fetch(client).await?; // This will fail if the hashtag doesn't
-    ///                                                 // exist in the Opsview API.
+    ///     let hashtag = hashtag.fetch(client, None).await?; // This will fail if the hashtag
+    ///                                                       // doesn't exist in the Opsview API.
     ///
     ///     assert!(hashtag.id.is_some()); // The id field is set after the fetch, since the object
     ///                                    // that exists in the Opsview API has an id.
@@ -270,8 +270,12 @@ pub trait Persistent: ConfigObject {
     ///     Ok(hashtag)
     /// }
     /// ```
-    async fn fetch(&self, client: &OpsviewClient) -> Result<Self, OpsviewClientError> {
-        client.get_object_config::<Self>(self).await
+    async fn fetch(
+        &self,
+        client: &OpsviewClient,
+        params: Option<Params>,
+    ) -> Result<Self, OpsviewClientError> {
+        client.get_object_config::<Self>(self, params).await
     }
 
     /// Removes the object from the Opsview Server.

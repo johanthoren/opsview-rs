@@ -40,7 +40,7 @@ async fn test_get_all_bsmcomponent_configs_mock() -> Result<(), OpsviewClientErr
         .build()
         .await?;
 
-    let components = ov.get_all_bsmcomponent_configs().await;
+    let components = ov.get_all_bsmcomponent_configs(None).await;
 
     assert!(components.is_ok());
 
@@ -65,7 +65,7 @@ async fn test_get_bsmservice_config_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let bsmservice = ov.get_bsmservice_config("BSM 1").await?;
+    let bsmservice = ov.get_bsmservice_config("BSM 1", None).await?;
     let component_1 = bsmservice
         .components
         .as_ref()
@@ -103,7 +103,7 @@ async fn test_get_all_bsmservice_configs_mock() -> Result<(), OpsviewClientError
         .build()
         .await?;
 
-    let services = ov.get_all_bsmservice_configs().await?;
+    let services = ov.get_all_bsmservice_configs(None).await?;
     let service_1 = services.get("BSM 1-1").unwrap();
     let component_1 = service_1
         .components
@@ -146,7 +146,7 @@ async fn test_get_contact_config_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let contact = ov.get_contact_config("admin").await?;
+    let contact = ov.get_contact_config("admin", None).await?;
 
     assert_eq!(contact.name, "admin");
     assert_eq!(contact.id, Some(1));
@@ -193,7 +193,7 @@ async fn test_get_all_contact_configs_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let contacts = ov.get_all_contact_configs().await?;
+    let contacts = ov.get_all_contact_configs(None).await?;
     let anonymous_guest = contacts
         .get("anonymous-guest")
         .expect("No contact named 'anonymous-guest'");
@@ -228,7 +228,7 @@ async fn test_get_all_hashtag_configs_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let hashtags = ov.get_all_hashtag_configs().await?;
+    let hashtags = ov.get_all_hashtag_configs(None).await?;
 
     assert!(!hashtags.is_empty());
 
@@ -253,7 +253,7 @@ async fn test_get_host_config_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let host = ov.get_host_config("opsview").await?;
+    let host = ov.get_host_config("opsview", None).await?;
 
     assert_eq!(host.name, "opsview");
     assert_eq!(
@@ -292,7 +292,7 @@ async fn test_get_all_host_configs_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let hosts = ov.get_all_host_configs().await?;
+    let hosts = ov.get_all_host_configs(None).await?;
     let host_0 = hosts.get("Amer-Finance-Environment").unwrap();
     let host_48 = hosts.get("opsview").unwrap();
 
@@ -366,7 +366,7 @@ async fn test_get_all_hostcheckcommand_configs_mock() -> Result<(), OpsviewClien
         .build()
         .await?;
 
-    let commands = ov.get_all_hostcheckcommand_configs().await?;
+    let commands = ov.get_all_hostcheckcommand_configs(None).await?;
 
     assert!(!commands.is_empty());
 
@@ -408,7 +408,7 @@ async fn test_get_all_hostgroup_configs_mock() -> Result<(), OpsviewClientError>
         .build()
         .await?;
 
-    let hostgroups = ov.get_all_hostgroup_configs().await?;
+    let hostgroups = ov.get_all_hostgroup_configs(None).await?;
 
     let hostgroup_1 = hostgroups.get("Opsview,").unwrap();
 
@@ -442,7 +442,7 @@ async fn test_get_all_hosticon_configs_mock() -> Result<(), OpsviewClientError> 
         .build()
         .await?;
 
-    let hosticons = ov.get_all_hosticon_configs().await?;
+    let hosticons = ov.get_all_hosticon_configs(None).await?;
 
     assert!(!hosticons.is_empty());
 
@@ -490,7 +490,7 @@ async fn test_get_all_hosttemplate_configs_mock() -> Result<(), OpsviewClientErr
         .await;
 
     let ov = OpsviewClient::new(&s.url(), "username", "password", false).await?;
-    let hosttemplates = ov.get_all_hosttemplate_configs().await?;
+    let hosttemplates = ov.get_all_hosttemplate_configs(None).await?;
 
     assert!(!hosttemplates.is_empty());
 
@@ -515,7 +515,9 @@ async fn test_get_monitoringcluster_config_mock() -> Result<(), OpsviewClientErr
         .build()
         .await?;
 
-    let cluster = ov.get_monitoringcluster_config("collectors-ny").await?;
+    let cluster = ov
+        .get_monitoringcluster_config("collectors-ny", None)
+        .await?;
 
     assert_eq!(cluster.name, "collectors-ny");
     assert_eq!(cluster.id, Some(2));
@@ -545,7 +547,7 @@ async fn test_get_all_monitoringcluster_configs_mock() -> Result<(), OpsviewClie
         .build()
         .await?;
 
-    let clusters = ov.get_all_monitoringcluster_configs().await?;
+    let clusters = ov.get_all_monitoringcluster_configs(None).await?;
     let cluster_1 = clusters.get("Master Monitoring Server").unwrap();
     let cluster_2 = clusters.get("collectors-ny").unwrap();
 
@@ -597,7 +599,7 @@ async fn test_get_notificationmethod_config_mock() -> Result<(), OpsviewClientEr
         .build()
         .await?;
 
-    let method = ov.get_notificationmethod_config("Email").await?;
+    let method = ov.get_notificationmethod_config("Email", None).await?;
 
     assert_eq!(method.name, "Email");
     assert_eq!(method.id, Some(3));
@@ -636,7 +638,7 @@ async fn test_get_all_notificationmethod_configs_mock() -> Result<(), OpsviewCli
         .build()
         .await?;
 
-    let methods = ov.get_all_notificationmethod_configs().await?;
+    let methods = ov.get_all_notificationmethod_configs(None).await?;
     let method_1 = methods.get("Email").unwrap();
     let method_2 = methods.get("SMS Notification Module").unwrap();
 
@@ -706,7 +708,7 @@ async fn test_get_all_plugin_configs_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let plugins = ov.get_all_plugin_configs().await?;
+    let plugins = ov.get_all_plugin_configs(None).await?;
 
     assert!(!plugins.is_empty());
 
@@ -731,7 +733,7 @@ async fn test_get_role_config_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let role = ov.get_role_config("Administrator").await?;
+    let role = ov.get_role_config("Administrator", None).await?;
 
     assert_eq!(role.name, "Administrator");
     assert_eq!(role.id, Some(10));
@@ -759,7 +761,7 @@ async fn test_get_all_role_configs_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let roles = ov.get_all_role_configs().await?;
+    let roles = ov.get_all_role_configs(None).await?;
 
     println!("{:#?}", roles);
 
@@ -828,7 +830,7 @@ async fn test_get_all_servicegroup_configs_mock() -> Result<(), OpsviewClientErr
         .build()
         .await?;
 
-    let servicegroups = ov.get_all_servicegroup_configs().await?;
+    let servicegroups = ov.get_all_servicegroup_configs(None).await?;
 
     let servicegroup_1 = servicegroups
         .get("Application - Active Directory - Address Book")
@@ -1041,7 +1043,7 @@ async fn test_get_all_servicecheck_configs_mock() -> Result<(), OpsviewClientErr
         .build()
         .await?;
 
-    let servicechecks = ov.get_all_servicecheck_configs().await?;
+    let servicechecks = ov.get_all_servicecheck_configs(None).await?;
 
     assert!(!servicechecks.is_empty());
 
@@ -1082,7 +1084,7 @@ async fn test_get_sharednotificationprofile_config_mock() -> Result<(), OpsviewC
         .await?;
 
     let profile = ov
-        .get_sharednotificationprofile_config("Receive all alerts during work hours")
+        .get_sharednotificationprofile_config("Receive all alerts during work hours", None)
         .await?;
 
     println!("{:#?}", profile);
@@ -1124,7 +1126,7 @@ async fn test_get_all_sharednotificationprofile_configs_mock() -> Result<(), Ops
         .build()
         .await?;
 
-    let profiles = ov.get_all_sharednotificationprofile_configs().await?;
+    let profiles = ov.get_all_sharednotificationprofile_configs(None).await?;
     let profile_1 = profiles
         .get("Receive all alerts during work hours")
         .unwrap();
@@ -1159,7 +1161,7 @@ async fn test_get_all_tenancy_configs_mock() -> Result<(), OpsviewClientError> {
         .build()
         .await?;
 
-    let tenancies = ov.get_all_tenancy_configs().await?;
+    let tenancies = ov.get_all_tenancy_configs(None).await?;
 
     assert!(!tenancies.is_empty());
 
@@ -1184,7 +1186,7 @@ async fn test_get_all_timeperiod_configs_mock() -> Result<(), OpsviewClientError
         .build()
         .await?;
 
-    let timeperiods = ov.get_all_timeperiod_configs().await?;
+    let timeperiods = ov.get_all_timeperiod_configs(None).await?;
 
     assert!(!timeperiods.is_empty());
 
@@ -1227,7 +1229,7 @@ async fn test_get_all_variable_configs_mock() -> Result<(), OpsviewClientError> 
         .build()
         .await?;
 
-    let variables = ov.get_all_variable_configs().await?;
+    let variables = ov.get_all_variable_configs(None).await?;
 
     assert!(!variables.is_empty());
 

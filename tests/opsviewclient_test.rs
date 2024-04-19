@@ -49,7 +49,10 @@ async fn bail_on_unsaved_changes(client: &OpsviewClient) -> Result<(), OpsviewCl
 }
 
 async fn cleanup(client: &OpsviewClient) -> Result<(), OpsviewClientError> {
-    let all_hosts = client.get_all_host_configs().await.unwrap();
+    let all_hosts = client
+        .get_all_host_configs(Some(vec![("cols".to_string(), "name,id".to_string())]))
+        .await
+        .unwrap();
 
     assert!(!all_hosts.is_empty());
     println!("all_hosts: {:#?}", all_hosts);
@@ -64,7 +67,10 @@ async fn cleanup(client: &OpsviewClient) -> Result<(), OpsviewClientError> {
         }
     }
 
-    let all_hashtags = client.get_all_hashtag_configs().await.unwrap();
+    let all_hashtags = client
+        .get_all_hashtag_configs(Some(vec![("cols".to_string(), "name,id".to_string())]))
+        .await
+        .unwrap();
 
     assert!(!all_hashtags.is_empty());
 
@@ -78,7 +84,10 @@ async fn cleanup(client: &OpsviewClient) -> Result<(), OpsviewClientError> {
         }
     }
 
-    let all_hosttemplates = client.get_all_hosttemplate_configs().await.unwrap();
+    let all_hosttemplates = client
+        .get_all_hosttemplate_configs(Some(vec![("cols".to_string(), "name,id".to_string())]))
+        .await
+        .unwrap();
 
     assert!(!all_hosttemplates.is_empty());
 
@@ -92,7 +101,10 @@ async fn cleanup(client: &OpsviewClient) -> Result<(), OpsviewClientError> {
         }
     }
 
-    let all_hostgroups = client.get_all_hostgroup_configs().await.unwrap();
+    let all_hostgroups = client
+        .get_all_hostgroup_configs(Some(vec![("cols".to_string(), "name,id".to_string())]))
+        .await
+        .unwrap();
 
     assert!(!all_hostgroups.is_empty());
 
@@ -106,7 +118,10 @@ async fn cleanup(client: &OpsviewClient) -> Result<(), OpsviewClientError> {
         }
     }
 
-    let all_contacts = client.get_all_contact_configs().await.unwrap();
+    let all_contacts = client
+        .get_all_contact_configs(Some(vec![("cols".to_string(), "name,id".to_string())]))
+        .await
+        .unwrap();
 
     for contact in all_contacts.values() {
         if contact
@@ -118,7 +133,10 @@ async fn cleanup(client: &OpsviewClient) -> Result<(), OpsviewClientError> {
         }
     }
 
-    let all_roles = client.get_all_role_configs().await.unwrap();
+    let all_roles = client
+        .get_all_role_configs(Some(vec![("cols".to_string(), "name,id".to_string())]))
+        .await
+        .unwrap();
 
     for role in all_roles.values() {
         if role
@@ -176,7 +194,7 @@ async fn test_get_all_bsmcomponent_configs() -> Result<(), OpsviewClientError> {
         .as_ref()
         .ok_or("OpsviewClient is not initialized")?;
 
-    let bsmcomponents = client.get_all_bsmcomponent_configs().await?;
+    let bsmcomponents = client.get_all_bsmcomponent_configs(None).await?;
 
     println!("bsmcomponents: {:#?}", bsmcomponents);
 
@@ -207,7 +225,7 @@ async fn test_get_all_hosttemplate_configs() -> Result<(), OpsviewClientError> {
         .as_ref()
         .ok_or("OpsviewClient is not initialized")?;
 
-    let hosttemplates = client.get_all_hosttemplate_configs().await?;
+    let hosttemplates = client.get_all_hosttemplate_configs(None).await?;
 
     assert!(!hosttemplates.is_empty());
     println!("hosttemplates: {:#?}", hosttemplates);
@@ -238,7 +256,7 @@ async fn test_get_all_host_configs() -> Result<(), OpsviewClientError> {
         .as_ref()
         .ok_or("OpsviewClient is not initialized")?;
 
-    let hosts = client.get_all_host_configs().await?;
+    let hosts = client.get_all_host_configs(None).await?;
 
     assert!(!hosts.is_empty());
 
@@ -267,7 +285,7 @@ async fn test_get_all_hosticon_configs() -> Result<(), OpsviewClientError> {
         .as_ref()
         .ok_or("OpsviewClient is not initialized")?;
 
-    let hosticons = client.get_all_hosticon_configs().await?;
+    let hosticons = client.get_all_hosticon_configs(None).await?;
 
     assert!(!hosticons.is_empty());
 
@@ -296,7 +314,7 @@ async fn test_get_all_contact_configs() -> Result<(), OpsviewClientError> {
         .as_ref()
         .ok_or("OpsviewClient is not initialized")?;
 
-    let contacts = client.get_all_contact_configs().await?;
+    let contacts = client.get_all_contact_configs(None).await?;
 
     println!("contacts: {:#?}", contacts);
 
@@ -327,7 +345,38 @@ async fn test_get_single_host() -> Result<(), OpsviewClientError> {
         .as_ref()
         .ok_or("OpsviewClient is not initialized")?;
 
-    let host = client.get_host_config("Opsview").await?;
+    let host = client.get_host_config("Opsview", None).await?;
+
+    assert_eq!(host.name, "opsview");
+
+    Ok(())
+}
+
+#[ignore]
+#[tokio::test]
+async fn test_get_single_host_with_params() -> Result<(), OpsviewClientError> {
+    if env::var("OV_URL").is_err() {
+        return Ok(());
+    }
+
+    if env::var("OV_USERNAME").is_err() {
+        return Ok(());
+    }
+
+    if env::var("OV_PASSWORD").is_err() {
+        return Ok(());
+    }
+
+    let params = Some(vec![("cols".to_string(), "name".to_string())]);
+
+    let client_lock = get_or_initialize_client().await;
+    let client_guard = client_lock.lock().await;
+
+    let client = client_guard
+        .as_ref()
+        .ok_or("OpsviewClient is not initialized")?;
+
+    let host = client.get_host_config("Opsview", params).await?;
 
     assert_eq!(host.name, "opsview");
 
@@ -372,7 +421,7 @@ async fn test_put_and_delete_single_hashtag() -> Result<(), OpsviewError> {
 
     client.put_object_config::<Hashtag>(&hashtag).await?;
 
-    let hashtag = hashtag.fetch(client).await?;
+    let hashtag = hashtag.fetch(client, None).await?;
 
     assert_eq!(hashtag.name, random_name);
     assert!(hashtag.description.is_some());
@@ -446,11 +495,11 @@ async fn test_get_host_by_id() -> Result<(), OpsviewClientError> {
         .as_ref()
         .ok_or("OpsviewClient is not initialized")?;
 
-    let host = client.get_host_config("opsview").await?;
+    let host = client.get_host_config("opsview", None).await?;
 
     println!("host: {:#?}", host);
 
-    let host_by_id = client.get_host_config_by_id(host.id.unwrap()).await?;
+    let host_by_id = client.get_host_config_by_id(host.id.unwrap(), None).await?;
 
     assert_eq!(host_by_id.name, "opsview");
 
@@ -482,9 +531,9 @@ async fn test_create_and_remove_bsmcomponent() -> Result<(), OpsviewError> {
     bail_on_unsaved_changes(client).await?;
 
     let template = HostTemplate::builder().name("Network - Base").build()?;
-    let template = template.fetch(client).await?;
+    let template = template.fetch(client, None).await?;
 
-    let host_1 = client.get_host_config("opsview").await?;
+    let host_1 = client.get_host_config("opsview", None).await?;
 
     let mut hosts = ConfigObjectMap::<Host>::new();
     hosts.add(host_1);
@@ -499,7 +548,7 @@ async fn test_create_and_remove_bsmcomponent() -> Result<(), OpsviewError> {
     component.create(client).await?;
     client.apply_changes().await?;
 
-    let existing_components = client.get_all_bsmcomponent_configs().await?;
+    let existing_components = client.get_all_bsmcomponent_configs(None).await?;
 
     for component in existing_components.values() {
         if &component.name == "Test BSM Component from opsview-rs integration test" {
@@ -602,7 +651,7 @@ async fn test_host_exists_by_id() -> Result<(), OpsviewClientError> {
         .ok_or("OpsviewClient is not initialized")?;
 
     // Get the host by name
-    let host = client.get_host_config("opsview").await?;
+    let host = client.get_host_config("opsview", None).await?;
 
     assert!(host.id().is_some());
 
@@ -727,7 +776,7 @@ async fn test_create_and_delete_new_host_with_deps() -> Result<(), std::io::Erro
 
             hashtag_coll.create_all(&client).await.unwrap();
 
-            let api_hashtag = hashtag.fetch(&client).await.unwrap();
+            let api_hashtag = hashtag.fetch(&client, None).await.unwrap();
 
             assert_eq!(hashtag.name, api_hashtag.name);
             assert!(api_hashtag.id().is_some());
@@ -735,7 +784,7 @@ async fn test_create_and_delete_new_host_with_deps() -> Result<(), std::io::Erro
 
             service_group.create(&client).await.unwrap();
 
-            let api_service_group = service_group.fetch(&client).await.unwrap();
+            let api_service_group = service_group.fetch(&client, None).await.unwrap();
 
             assert_eq!(service_group.clone().name, api_service_group.name);
             assert!(api_service_group.id().is_some());
@@ -743,7 +792,7 @@ async fn test_create_and_delete_new_host_with_deps() -> Result<(), std::io::Erro
 
             servicechecks.create_all(&client).await.unwrap();
 
-            let api_service = service.fetch(&client).await.unwrap();
+            let api_service = service.fetch(&client, None).await.unwrap();
 
             assert_eq!(service.name, api_service.name);
             assert!(api_service.id().is_some());
@@ -751,7 +800,7 @@ async fn test_create_and_delete_new_host_with_deps() -> Result<(), std::io::Erro
 
             hosttemplate_coll.create_all(&client).await.unwrap();
 
-            let api_hosttemplate = hosttemplate.fetch(&client).await.unwrap();
+            let api_hosttemplate = hosttemplate.fetch(&client, None).await.unwrap();
 
             assert_eq!(hosttemplate.name, api_hosttemplate.name);
             assert!(api_hosttemplate.id().is_some());
@@ -759,7 +808,7 @@ async fn test_create_and_delete_new_host_with_deps() -> Result<(), std::io::Erro
 
             hostgroup.create(&client).await.unwrap();
 
-            let api_hostgroup = hostgroup.fetch(&client).await.unwrap();
+            let api_hostgroup = hostgroup.fetch(&client, None).await.unwrap();
 
             assert_eq!(hostgroup.name, api_hostgroup.name);
             assert!(api_hostgroup.id().is_some());
@@ -769,7 +818,7 @@ async fn test_create_and_delete_new_host_with_deps() -> Result<(), std::io::Erro
 
             assert!(host.exists(&client).await.unwrap());
 
-            let api_host = host.fetch(&client).await.unwrap();
+            let api_host = host.fetch(&client, None).await.unwrap();
 
             assert_eq!(host.name, api_host.name);
             assert!(api_host.id().is_some());
@@ -845,13 +894,13 @@ async fn test_update_persistent_method() -> Result<(), OpsviewError> {
         .build()?;
 
     test_var_zero.update(client).await?;
-    let test_var_zero = test_var_zero.fetch(client).await?;
+    let test_var_zero = test_var_zero.fetch(client, None).await?;
 
     let mut test_var_one = test_var_zero.clone();
     test_var_one.value = Some("1".to_string());
 
     let host = Host::minimal("opsview")?;
-    let mut host = host.fetch(client).await?;
+    let mut host = host.fetch(client, None).await?;
 
     host.update_variable(test_var_one);
 
@@ -859,7 +908,7 @@ async fn test_update_persistent_method() -> Result<(), OpsviewError> {
 
     host.update(client).await?;
 
-    let updated_host = host.fetch(client).await?;
+    let updated_host = host.fetch(client, None).await?;
     let updated_host_attributes = updated_host.hostattributes.clone().unwrap();
 
     assert!(updated_host_attributes.contains_name("OPSVIEW_RS_TEST_COUNTER"));
@@ -981,7 +1030,7 @@ async fn test_create_and_delete_contact() -> Result<(), OpsviewError> {
     let links = links;
 
     role.create(client).await?;
-    let api_role = role.fetch(client).await?;
+    let api_role = role.fetch(client, None).await?;
 
     let contact = Contact::builder()
         .name("opsview_rs_test_contact")
@@ -1001,7 +1050,7 @@ async fn test_create_and_delete_contact() -> Result<(), OpsviewError> {
 
     contact.create(&client).await?;
 
-    let api_contact = contact.fetch(&client).await?;
+    let api_contact = contact.fetch(&client, None).await?;
     api_contact.remove(&client).await?;
     api_role.remove(&client).await?;
 

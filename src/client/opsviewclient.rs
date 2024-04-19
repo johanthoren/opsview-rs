@@ -13,6 +13,9 @@ pub struct OpsviewClientBuilder {
     ignore_cert: bool,
 }
 
+/// Alias for a list of key-value pairs used as query parameters in HTTP requests.
+pub type Params = Vec<(String, String)>;
+
 impl OpsviewClientBuilder {
     /// Sets the URL of the Opsview API.
     ///
@@ -247,9 +250,26 @@ impl OpsviewClient {
     }
 
     /// Performs a GET request to a specified path in the Opsview API and returns the response.
-    async fn get(&self, path: &str) -> Result<Value, OpsviewClientError> {
+    ///
+    /// This asynchronous method sends a GET request to the Opsview API and returns the response.
+    ///
+    /// # Arguments
+    /// * `path` - The API path to be queried.
+    /// * `params` - Optional query parameters to be included in the request.
+    ///
+    /// # Returns
+    /// A `Result` wrapping the JSON response from the Opsview API.
+    ///
+    /// # Errors
+    /// Returns an error if the HTTP request fails, or if the response cannot be parsed into a
+    /// JSON object.
+    async fn get(&self, path: &str, params: Option<Params>) -> Result<Value, OpsviewClientError> {
         let url = Url::parse(&format!("{}/rest{}", self.url, path))?;
-        handle_http_response(self.client.get(url.as_ref()).send().await?).await
+        if let Some(params) = params {
+            handle_http_response(self.client.get(url.as_ref()).query(&params).send().await?).await
+        } else {
+            handle_http_response(self.client.get(url.as_ref()).send().await?).await
+        }
     }
 
     /// Sends a POST request to the Opsview API.
@@ -347,7 +367,7 @@ impl OpsviewClient {
     /// ```
     pub async fn changes_to_apply(&self) -> Result<bool, OpsviewClientError> {
         let field = "configuration_status";
-        let response = self.get("/reload").await?;
+        let response = self.get("/reload", None).await?;
         let status = response
             .get(field)
             .and_then(|v| v.as_str())
@@ -368,7 +388,7 @@ impl OpsviewClient {
     /// A unix timestamp as a `u64` representing the last configuration update.
     pub async fn last_updated(&self) -> Result<u64, OpsviewClientError> {
         let field = "lastupdated";
-        let response = self.get("/reload").await?;
+        let response = self.get("/reload", None).await?;
         let last_updated_str = response
             .get(field)
             .and_then(|v| v.as_str())
@@ -385,7 +405,7 @@ impl OpsviewClient {
     /// Checks if a specific object exists in the Opsview system based on the object ID.
     async fn object_exists_by_id(&self, path: &str, id: u64) -> Result<bool, OpsviewClientError> {
         let full_path = format!("{}/exists?id={}", path, id);
-        let response = self.get(&full_path).await?;
+        let response = self.get(&full_path, None).await?;
 
         interpret_exists_response(response)
     }
@@ -398,7 +418,7 @@ impl OpsviewClient {
         value: &str,
     ) -> Result<bool, OpsviewClientError> {
         let full_path = format!("{}/exists?{}={}", path, key, value);
-        let response = self.get(&full_path).await?;
+        let response = self.get(&full_path, None).await?;
 
         interpret_exists_response(response)
     }
@@ -430,7 +450,7 @@ impl OpsviewClient {
         key: &str,
         value: &str,
     ) -> Result<Value, OpsviewClientError> {
-        let object_id = self.get_object_id_by_key::<T>(key, value).await?;
+        let object_id = self.get_object_id_by_key::<T>(key, value, None).await?;
         self.delete_object_config_by_id::<T>(object_id).await
     }
 
@@ -493,6 +513,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `obj` - A reference to an object which implements the `Persistent` trait.
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Examples
     /// ```rust,no_run
@@ -513,19 +534,24 @@ impl OpsviewClient {
     ///       .build()
     ///       .unwrap();
     ///
-    ///    let hashtag = client.get_object_config(&hashtag).await?;
+    ///    let hashtag = client.get_object_config(&hashtag, None).await?;
     ///
     ///    assert!(hashtag.id.is_some());
     ///
     ///    Ok(())
     /// }
     /// ```     
-    pub async fn get_object_config<T: Persistent>(&self, obj: &T) -> Result<T, OpsviewClientError> {
+    pub async fn get_object_config<T: Persistent>(
+        &self,
+        obj: &T,
+        params: Option<Params>,
+    ) -> Result<T, OpsviewClientError> {
         match (T::config_path(), obj.id(), obj.ref_(), obj.name()) {
-            (_, _, Some(ref_), _) => self.get_object_config_by_ref::<T>(&ref_).await,
-            (Some(_path), Some(id), _, _) => self.get_object_config_by_id::<T>(id).await,
+            (_, _, Some(ref_), _) => self.get_object_config_by_ref::<T>(&ref_, params).await,
+            (Some(_path), Some(id), _, _) => self.get_object_config_by_id::<T>(id, params).await,
             (Some(_path), _, _, Some(name)) => {
-                self.get_object_config_by_key::<T>("name", &name).await
+                self.get_object_config_by_key::<T>("name", &name, params)
+                    .await
             }
             _ => Err(OpsviewClientError::MissingIdentifiers(
                 "Cannot fetch object: neither ref_, id, nor name are set.".to_string(),
@@ -539,6 +565,9 @@ impl OpsviewClient {
     /// configuration objects. It is typically used to retrieve a list of BSM Components for further
     /// processing.
     ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
+    ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `BSMComponent` objects on the
     /// Opsview system.
@@ -547,8 +576,10 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_bsmcomponent_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<BSMComponent>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<BSMComponent>().await
+        self.get_all_object_configs_by_type::<BSMComponent>(params)
+            .await
     }
 
     /// Gets all BSM Service configuration objects from the Opsview system.
@@ -556,6 +587,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all BSM Service
     /// configuration objects. It is typically used to retrieve a list of BSM Services for further
     /// processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `BSMService` objects on the
@@ -565,8 +599,10 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_bsmservice_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<BSMService>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<BSMService>().await
+        self.get_all_object_configs_by_type::<BSMService>(params)
+            .await
     }
 
     /// Gets all contact configuration objects from the Opsview system.
@@ -574,6 +610,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all contact
     /// configuration objects. It is typically used to retrieve a list of contacts for further
     /// processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `Contact` objects on the
@@ -583,8 +622,9 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_contact_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<Contact>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<Contact>().await
+        self.get_all_object_configs_by_type::<Contact>(params).await
     }
 
     /// Gets all host configuration objects from the Opsview system.
@@ -592,6 +632,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all host
     /// configuration objects. It is typically used to retrieve a list of hosts for further
     /// processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `Host` objects on the
@@ -601,8 +644,9 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_hashtag_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<Hashtag>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<Hashtag>().await
+        self.get_all_object_configs_by_type::<Hashtag>(params).await
     }
 
     /// Gets all host configuration objects from the Opsview system.
@@ -611,14 +655,20 @@ impl OpsviewClient {
     /// configuration objects. It is typically used to retrieve a list of hosts for further
     /// processing.
     ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
+    ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `Host` objects on the
     /// Opsview system.
     ///
     /// # Errors
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
-    pub async fn get_all_host_configs(&self) -> Result<ConfigObjectMap<Host>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<Host>().await
+    pub async fn get_all_host_configs(
+        &self,
+        params: Option<Params>,
+    ) -> Result<ConfigObjectMap<Host>, OpsviewClientError> {
+        self.get_all_object_configs_by_type::<Host>(params).await
     }
 
     /// Gets all host check command configuration objects from the Opsview system.
@@ -626,6 +676,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all host check
     /// command configuration objects. It is typically used to retrieve a list of host check commands
     /// for further processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `HostCheckCommand` objects on the
@@ -635,8 +688,9 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_hostcheckcommand_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<HostCheckCommand>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<HostCheckCommand>()
+        self.get_all_object_configs_by_type::<HostCheckCommand>(params)
             .await
     }
 
@@ -646,6 +700,9 @@ impl OpsviewClient {
     /// configuration objects. It is typically used to retrieve a list of host groups for further
     /// processing.
     ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
+    ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `HostGroup` objects on the
     /// Opsview system.
@@ -654,8 +711,10 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_hostgroup_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<HostGroup>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<HostGroup>().await
+        self.get_all_object_configs_by_type::<HostGroup>(params)
+            .await
     }
 
     /// Gets all host icon configuration objects from the Opsview system.
@@ -663,6 +722,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all host icon
     /// configuration objects. It is typically used to retrieve a list of host icons for further
     /// processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `HostIcon` objects on the
@@ -672,8 +734,10 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_hosticon_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<HostIcon>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<HostIcon>().await
+        self.get_all_object_configs_by_type::<HostIcon>(params)
+            .await
     }
 
     /// Gets all host template configuration objects from the Opsview system.
@@ -681,6 +745,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all host template
     /// configuration objects. It is typically used to retrieve a list of host templates for further
     /// processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `HostTemplate` objects on the
@@ -690,8 +757,10 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_hosttemplate_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<HostTemplate>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<HostTemplate>().await
+        self.get_all_object_configs_by_type::<HostTemplate>(params)
+            .await
     }
 
     /// Gets all monitoring cluster configuration objects from the Opsview system.
@@ -699,6 +768,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all monitoring
     /// cluster configuration objects. It is typically used to retrieve a list of monitoring clusters
     /// for further processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `MonitoringCluster` objects on the
@@ -708,8 +780,9 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_monitoringcluster_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<MonitoringCluster>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<MonitoringCluster>()
+        self.get_all_object_configs_by_type::<MonitoringCluster>(params)
             .await
     }
 
@@ -719,6 +792,9 @@ impl OpsviewClient {
     /// collector configuration objects. It is typically used to retrieve a list of netflow collectors
     /// for further processing.
     ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
+    ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `NetflowCollector` objects on the
     /// Opsview system.
@@ -727,8 +803,9 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response fails.
     pub async fn get_all_netflowcollector_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<NetflowCollector>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<NetflowCollector>()
+        self.get_all_object_configs_by_type::<NetflowCollector>(params)
             .await
     }
 
@@ -738,6 +815,9 @@ impl OpsviewClient {
     /// source configuration objects. It is typically used to retrieve a list of netflow sources
     /// for further processing.
     ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
+    ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `NetflowSource` objects on the
     /// Opsview system.
@@ -746,8 +826,10 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing fails.
     pub async fn get_all_netflowsource_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<NetflowSource>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<NetflowSource>().await
+        self.get_all_object_configs_by_type::<NetflowSource>(params)
+            .await
     }
 
     /// Gets all notification method configuration objects from the Opsview system.
@@ -755,6 +837,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all notification
     /// method configuration objects. It is typically used to retrieve a list of notification methods
     /// for further processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `NotificationMethod` objects on the
@@ -764,8 +849,9 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_notificationmethod_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<NotificationMethod>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<NotificationMethod>()
+        self.get_all_object_configs_by_type::<NotificationMethod>(params)
             .await
     }
 
@@ -780,6 +866,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `T` - The type of object to be retrieved.
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping a `ConfigObjectMap<T>` containing the objects on the Opsview system at
@@ -789,22 +876,31 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     async fn get_all_object_configs_by_type<T: ConfigObject>(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<T>, OpsviewClientError> {
         let path: String = T::config_path().ok_or(OpsviewClientError::NoConfigPath)?;
         let mut summary_totalrows: Option<u64> = None;
         let mut all_objects: ConfigObjectMap<T> = ConfigObjectMap::new();
         let mut page: u64 = 1;
         loop {
-            let paged_path_binding;
-            let paged_path = match page {
-                1 => path.as_str(),
-                _ => {
-                    paged_path_binding = format!("{}?page={}", path, page);
-                    paged_path_binding.as_str()
+            // let paged_path_binding;
+            // let paged_path = match page {
+            //     1 => path.as_str(),
+            //     _ => {
+            //         paged_path_binding = format!("{}?page={}", path, page);
+            //         paged_path_binding.as_str()
+            //     }
+            // };
+            let paged_params: Option<Params> = match (page, params.clone()) {
+                (1, _) => params.clone(),
+                (_, Some(mut p)) => {
+                    p.push(("page".to_string(), page.to_string()));
+                    Some(p)
                 }
+                (_, None) => Some(vec![("page".to_string(), page.to_string())]),
             };
 
-            let response = self.get(paged_path).await?;
+            let response = self.get(&path, paged_params).await?;
             let summary = parse_summary(&response)?;
 
             match summary_totalrows {
@@ -824,12 +920,12 @@ impl OpsviewClient {
                 .get("list")
                 .ok_or(OpsviewClientError::ObjectNotFound(format!(
                     "'{}' not found",
-                    paged_path
+                    path
                 )))?
                 .as_array()
                 .ok_or(OpsviewClientError::NotAnArray(format!(
                     "ConfigObject at '{}' is not an array",
-                    paged_path
+                    path
                 )))?;
 
             let mut coll: ConfigObjectMap<T> =
@@ -861,6 +957,9 @@ impl OpsviewClient {
     /// configuration objects. It is typically used to retrieve a list of plugins for further
     /// processing.
     ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
+    ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `Plugin` objects on the
     /// Opsview system.
@@ -869,8 +968,9 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_plugin_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<Plugin>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<Plugin>().await
+        self.get_all_object_configs_by_type::<Plugin>(params).await
     }
 
     /// Gets all role configuration objects from the Opsview system.
@@ -879,14 +979,20 @@ impl OpsviewClient {
     /// configuration objects. It is typically used to retrieve a list of roles for further
     /// processing.
     ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
+    ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `Role` objects on the
     /// Opsview system.
     ///
     /// # Errors
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
-    pub async fn get_all_role_configs(&self) -> Result<ConfigObjectMap<Role>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<Role>().await
+    pub async fn get_all_role_configs(
+        &self,
+        params: Option<Params>,
+    ) -> Result<ConfigObjectMap<Role>, OpsviewClientError> {
+        self.get_all_object_configs_by_type::<Role>(params).await
     }
 
     /// Gets all service check configuration objects from the Opsview system.
@@ -894,6 +1000,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all service check
     /// configuration objects. It is typically used to retrieve a list of service checks for further
     /// processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `ServiceCheck` objects on the
@@ -903,8 +1012,10 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_servicecheck_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<ServiceCheck>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<ServiceCheck>().await
+        self.get_all_object_configs_by_type::<ServiceCheck>(params)
+            .await
     }
 
     /// Gets all service group configuration objects from the Opsview system.
@@ -912,6 +1023,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all service group
     /// configuration objects. It is typically used to retrieve a list of service groups for further
     /// processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `ServiceGroup` objects on the
@@ -921,8 +1035,10 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_servicegroup_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<ServiceGroup>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<ServiceGroup>().await
+        self.get_all_object_configs_by_type::<ServiceGroup>(params)
+            .await
     }
 
     /// Gets all shared notification profile configuration objects from the Opsview system.
@@ -930,6 +1046,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all shared
     /// notification profile configuration objects. It is typically used to retrieve a list of shared
     /// notification profiles for further processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `SharedNotificationProfile` objects
@@ -939,8 +1058,9 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_sharednotificationprofile_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<SharedNotificationProfile>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<SharedNotificationProfile>()
+        self.get_all_object_configs_by_type::<SharedNotificationProfile>(params)
             .await
     }
 
@@ -950,6 +1070,9 @@ impl OpsviewClient {
     /// configuration objects. It is typically used to retrieve a list of tenancies for further
     /// processing.
     ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
+    ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `Tenancy` objects on the
     /// Opsview system.
@@ -958,8 +1081,9 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_tenancy_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<Tenancy>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<Tenancy>().await
+        self.get_all_object_configs_by_type::<Tenancy>(params).await
     }
 
     /// Gets all timeperiod configuration objects from the Opsview system.
@@ -967,6 +1091,9 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all timeperiod
     /// configuration objects. It is typically used to retrieve a list of timeperiods for further
     /// processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping an `ConfigObjectMap` containing the `TimePeriod` objects on the
@@ -976,8 +1103,10 @@ impl OpsviewClient {
     /// Returns an error if the HTTP request fails or if parsing the response into JSON fails.
     pub async fn get_all_timeperiod_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<TimePeriod>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<TimePeriod>().await
+        self.get_all_object_configs_by_type::<TimePeriod>(params)
+            .await
     }
 
     /// Gets all varibale (attribute) configuration objects from the Opsview system.
@@ -985,10 +1114,15 @@ impl OpsviewClient {
     /// This asynchronous method sends a GET request to the Opsview API to retrieve all variable
     /// (attribute) configuration objects. It is typically used to retrieve a list of variables for
     /// further processing.
+    ///
+    /// # Arguments
+    /// * `params` - Optional query parameters to be included in the request.
     pub async fn get_all_variable_configs(
         &self,
+        params: Option<Params>,
     ) -> Result<ConfigObjectMap<Variable>, OpsviewClientError> {
-        self.get_all_object_configs_by_type::<Variable>().await
+        self.get_all_object_configs_by_type::<Variable>(params)
+            .await
     }
 
     /// Retrieves the configuration of a BSM Component from the Opsview system by its name.
@@ -998,6 +1132,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the BSM Component whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the BSM Component configuration, or an error if the operation fails.
@@ -1014,7 +1149,7 @@ impl OpsviewClient {
     ///
     /// async fn example() -> Result<BSMComponent, OpsviewClientError> {
     ///    let client = OpsviewClient::new("api.example.com", "user", "pass", false).await?;
-    ///    let bsm_component = client.get_bsmcomponent_config("exampleBSMComponent").await?;
+    ///    let bsm_component = client.get_bsmcomponent_config("exampleBSMComponent", None).await?;
     ///
     ///    println!("BSM Component: {}", bsm_component.name);
     ///
@@ -1024,8 +1159,9 @@ impl OpsviewClient {
     pub async fn get_bsmcomponent_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<BSMComponent, OpsviewClientError> {
-        self.get_object_config_by_key::<BSMComponent>("name", name)
+        self.get_object_config_by_key::<BSMComponent>("name", name, params)
             .await
     }
 
@@ -1036,6 +1172,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the BSM Service whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the BSM Service configuration, or an error if the operation fails.
@@ -1052,7 +1189,7 @@ impl OpsviewClient {
     ///
     /// async fn example() -> Result<BSMService, OpsviewClientError> {
     ///    let client = OpsviewClient::new("api.example.com", "user", "pass", false).await?;
-    ///    let bsm_service = client.get_bsmservice_config("exampleBSMService").await?;
+    ///    let bsm_service = client.get_bsmservice_config("exampleBSMService", None).await?;
     ///
     ///    println!("BSM Service: {}", bsm_service.name);
     ///
@@ -1062,8 +1199,9 @@ impl OpsviewClient {
     pub async fn get_bsmservice_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<BSMService, OpsviewClientError> {
-        self.get_object_config_by_key::<BSMService>("name", name)
+        self.get_object_config_by_key::<BSMService>("name", name, params)
             .await
     }
 
@@ -1074,6 +1212,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the contact whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the contact configuration, or an error if the operation fails.
@@ -1090,7 +1229,7 @@ impl OpsviewClient {
     ///
     /// async fn example() -> Result<Contact, OpsviewClientError> {
     ///   let client = OpsviewClient::new("api.example.com", "user", "pass", false).await?;
-    ///   let contact = client.get_contact_config("exampleContact").await?;
+    ///   let contact = client.get_contact_config("exampleContact", None).await?;
     ///
     ///   println!("Username: {}", contact.name);
     ///
@@ -1101,8 +1240,13 @@ impl OpsviewClient {
     ///   Ok(contact)
     ///   }
     /// ```
-    pub async fn get_contact_config(&self, name: &str) -> Result<Contact, OpsviewClientError> {
-        self.get_object_config_by_key::<Contact>("name", name).await
+    pub async fn get_contact_config(
+        &self,
+        name: &str,
+        params: Option<Params>,
+    ) -> Result<Contact, OpsviewClientError> {
+        self.get_object_config_by_key::<Contact>("name", name, params)
+            .await
     }
 
     /// Retrieves the configuration of a hashtag (keyword) from the Opsview system by its name.
@@ -1112,6 +1256,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the hashtag whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the hashtag configuration, or an error if the operation fails.
@@ -1128,15 +1273,20 @@ impl OpsviewClient {
     ///
     /// async fn example() -> Result<Hashtag, OpsviewClientError> {
     ///   let client = OpsviewClient::new("api.example.com", "user", "pass", false).await?;
-    ///   let hashtag = client.get_hashtag_config("exampleHashtag").await?;
+    ///   let hashtag = client.get_hashtag_config("exampleHashtag", None).await?;
     ///
     ///   println!("Hashtag: {}", hashtag.name);
     ///
     ///   Ok(hashtag)
     ///   }
     /// ```
-    pub async fn get_hashtag_config(&self, name: &str) -> Result<Hashtag, OpsviewClientError> {
-        self.get_object_config_by_key::<Hashtag>("name", name).await
+    pub async fn get_hashtag_config(
+        &self,
+        name: &str,
+        params: Option<Params>,
+    ) -> Result<Hashtag, OpsviewClientError> {
+        self.get_object_config_by_key::<Hashtag>("name", name, params)
+            .await
     }
 
     /// Retrieves the configuration of a host from the Opsview system by its name.
@@ -1146,6 +1296,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the host whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the host configuration, or an error if the operation fails.
@@ -1162,7 +1313,7 @@ impl OpsviewClient {
     ///
     /// async fn example() -> Result<Host, OpsviewClientError> {
     ///     let client = OpsviewClient::new("api.example.com", "user", "pass", false).await?;
-    ///     let host = client.get_host_config("exampleHost").await?;
+    ///     let host = client.get_host_config("exampleHost", None).await?;
     ///
     ///     println!("Host: {}", host.name);
     ///     println!("Host group: {}", host.hostgroup.clone().unwrap().name());
@@ -1171,14 +1322,20 @@ impl OpsviewClient {
     ///     Ok(host)
     /// }
     /// ```
-    pub async fn get_host_config(&self, name: &str) -> Result<Host, OpsviewClientError> {
-        self.get_object_config_by_key::<Host>("name", name).await
+    pub async fn get_host_config(
+        &self,
+        name: &str,
+        params: Option<Params>,
+    ) -> Result<Host, OpsviewClientError> {
+        self.get_object_config_by_key::<Host>("name", name, params)
+            .await
     }
 
     /// Retrieves the configuration of a host from the Opsview system by its ID.
     ///
     /// # Arguments
     /// * `id` - The ID of the host whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the host configuration, or an error if the operation fails.
@@ -1195,15 +1352,19 @@ impl OpsviewClient {
     ///
     /// async fn example() -> Result<Host, OpsviewClientError> {
     ///    let client = OpsviewClient::new("api.example.com", "user", "pass", false).await?;
-    ///    let host = client.get_host_config_by_id(1234).await?;
+    ///    let host = client.get_host_config_by_id(1234, None).await?;
     ///
     ///    println!("Host: {}", host.name);
     ///
     ///    Ok(host)
     ///    }
     /// ```
-    pub async fn get_host_config_by_id(&self, id: u64) -> Result<Host, OpsviewClientError> {
-        self.get_object_config_by_id::<Host>(id).await
+    pub async fn get_host_config_by_id(
+        &self,
+        id: u64,
+        params: Option<Params>,
+    ) -> Result<Host, OpsviewClientError> {
+        self.get_object_config_by_id::<Host>(id, params).await
     }
 
     /// Retrieves the ID of a host from the Opsview system based on the host name.
@@ -1213,14 +1374,20 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the host whose ID is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the ID of the host as a u64, or an error if the operation fails.
     ///
     /// # Errors
     /// Returns an error if the HTTP request fails, or if the host is not found or the ID is missing.
-    pub async fn get_host_id(&self, name: &str) -> Result<u64, OpsviewClientError> {
-        self.get_object_id_by_key::<Host>("name", name).await
+    pub async fn get_host_id(
+        &self,
+        name: &str,
+        params: Option<Params>,
+    ) -> Result<u64, OpsviewClientError> {
+        self.get_object_id_by_key::<Host>("name", name, params)
+            .await
     }
 
     /// Retrives the configuration of a host check command from the Opsview system by its name.
@@ -1230,6 +1397,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the host check command whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the host check command configuration, or an error if the operation fails.
@@ -1240,8 +1408,9 @@ impl OpsviewClient {
     pub async fn get_hostcheckcommand_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<HostCheckCommand, OpsviewClientError> {
-        self.get_object_config_by_key::<HostCheckCommand>("name", name)
+        self.get_object_config_by_key::<HostCheckCommand>("name", name, params)
             .await
     }
 
@@ -1252,6 +1421,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the host group whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the host group configuration, or an error if the operation fails.
@@ -1259,8 +1429,12 @@ impl OpsviewClient {
     /// # Errors
     /// Returns an error if the HTTP request fails, or if the host group is not found or the
     /// configuration is missing.
-    pub async fn get_hostgroup_config(&self, name: &str) -> Result<HostGroup, OpsviewClientError> {
-        self.get_object_config_by_key::<HostGroup>("name", name)
+    pub async fn get_hostgroup_config(
+        &self,
+        name: &str,
+        params: Option<Params>,
+    ) -> Result<HostGroup, OpsviewClientError> {
+        self.get_object_config_by_key::<HostGroup>("name", name, params)
             .await
     }
 
@@ -1271,6 +1445,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the host icon whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the host icon configuration, or an error if the operation fails.
@@ -1278,8 +1453,12 @@ impl OpsviewClient {
     /// # Errors
     /// Returns an error if the HTTP request fails, or if the host icon is not found or the
     /// configuration is missing.
-    pub async fn get_hosticon_config(&self, name: &str) -> Result<HostIcon, OpsviewClientError> {
-        self.get_object_config_by_key::<HostIcon>("name", name)
+    pub async fn get_hosticon_config(
+        &self,
+        name: &str,
+        params: Option<Params>,
+    ) -> Result<HostIcon, OpsviewClientError> {
+        self.get_object_config_by_key::<HostIcon>("name", name, params)
             .await
     }
 
@@ -1290,6 +1469,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the host template whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the host template configuration, or an error if the operation fails.
@@ -1300,8 +1480,9 @@ impl OpsviewClient {
     pub async fn get_hosttemplate_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<HostTemplate, OpsviewClientError> {
-        self.get_object_config_by_key::<HostTemplate>("name", name)
+        self.get_object_config_by_key::<HostTemplate>("name", name, params)
             .await
     }
 
@@ -1312,6 +1493,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the monitoring cluster whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the monitoring cluster configuration, or an error if the operation fails.
@@ -1322,8 +1504,9 @@ impl OpsviewClient {
     pub async fn get_monitoringcluster_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<MonitoringCluster, OpsviewClientError> {
-        self.get_object_config_by_key::<MonitoringCluster>("name", name)
+        self.get_object_config_by_key::<MonitoringCluster>("name", name, params)
             .await
     }
 
@@ -1334,6 +1517,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the notification method whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the notification method configuration, or an error if the operation fails.
@@ -1344,8 +1528,9 @@ impl OpsviewClient {
     pub async fn get_notificationmethod_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<NotificationMethod, OpsviewClientError> {
-        self.get_object_config_by_key::<NotificationMethod>("name", name)
+        self.get_object_config_by_key::<NotificationMethod>("name", name, params)
             .await
     }
 
@@ -1360,6 +1545,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `id` - The ID of the object whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the configuration of the object as a generic type, or an error if the
@@ -1371,10 +1557,11 @@ impl OpsviewClient {
     async fn get_object_config_by_id<T: ConfigObject>(
         &self,
         id: u64,
+        params: Option<Params>,
     ) -> Result<T, OpsviewClientError> {
         let path = T::config_path().ok_or(OpsviewClientError::NoConfigPath)?;
         let full_path = format!("{}/{}", path, id);
-        let response = self.get(&full_path).await?;
+        let response = self.get(&full_path, params).await?;
         let response_object = response
             .get("object")
             .ok_or(OpsviewClientError::ObjectNotFound(format!(
@@ -1393,6 +1580,7 @@ impl OpsviewClient {
     /// # Arguments
     /// * `key` - The key used to identify the specific object.
     /// * `value` - The value of the key for the specific object.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the configuration of the object as a generic type, or an error if the
@@ -1405,9 +1593,12 @@ impl OpsviewClient {
         &self,
         key: &str,
         value: &str,
+        params: Option<Params>,
     ) -> Result<T, OpsviewClientError> {
         let path = T::config_path().ok_or(OpsviewClientError::NoConfigPath)?;
-        let response = self.get(&format!("{}?s.{}={}", path, key, value)).await?;
+        let response = self
+            .get(&format!("{}?s.{}={}", path, key, value), params)
+            .await?;
         let response_object = response
             .get("list")
             .and_then(|v| v.get(0))
@@ -1428,6 +1619,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `ref_` - The ref of the object to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the configuration of the object as a generic type, or an error if the
@@ -1439,9 +1631,10 @@ impl OpsviewClient {
     async fn get_object_config_by_ref<T: ConfigObject>(
         &self,
         ref_: &str,
+        params: Option<Params>,
     ) -> Result<T, OpsviewClientError> {
         let path = path_from_ref(ref_)?;
-        let response = self.get(&path).await?;
+        let response = self.get(&path, params).await?;
         let response_object = response
             .get("object")
             .ok_or(OpsviewClientError::ObjectNotFound(format!(
@@ -1462,6 +1655,7 @@ impl OpsviewClient {
     /// * `path` - The API path where the object is located.
     /// * `key` - The key used to identify the specific object.
     /// * `value` - The value of the key for the specific object.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the ID of the object as a u64, or an error if the operation fails.
@@ -1472,9 +1666,12 @@ impl OpsviewClient {
         &self,
         key: &str,
         value: &str,
+        params: Option<Params>,
     ) -> Result<u64, OpsviewClientError> {
         let path = T::config_path().ok_or(OpsviewClientError::NoConfigPath)?;
-        let response = self.get(&format!("{}?s.{}={}", path, key, value)).await?;
+        let response = self
+            .get(&format!("{}?s.{}={}", path, key, value), params)
+            .await?;
         let object_id = response
             .get("list")
             .and_then(|v| v.get(0))
@@ -1500,6 +1697,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the plugin whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the plugin configuration, or an error if the operation fails.
@@ -1507,8 +1705,13 @@ impl OpsviewClient {
     /// # Errors
     /// Returns an error if the HTTP request fails, or if the plugin is not found or the
     /// configuration is missing.
-    pub async fn get_plugin_config(&self, name: &str) -> Result<Plugin, OpsviewClientError> {
-        self.get_object_config_by_key::<Plugin>("name", name).await
+    pub async fn get_plugin_config(
+        &self,
+        name: &str,
+        params: Option<Params>,
+    ) -> Result<Plugin, OpsviewClientError> {
+        self.get_object_config_by_key::<Plugin>("name", name, params)
+            .await
     }
 
     /// Returns the raw text response from the Opsview API for a given path.
@@ -1541,6 +1744,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the role whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the role configuration, or an error if the operation fails.
@@ -1548,8 +1752,13 @@ impl OpsviewClient {
     /// # Errors
     /// Returns an error if the HTTP request fails, or if the role is not found or the
     /// configuration is missing.
-    pub async fn get_role_config(&self, name: &str) -> Result<Role, OpsviewClientError> {
-        self.get_object_config_by_key::<Role>("name", name).await
+    pub async fn get_role_config(
+        &self,
+        name: &str,
+        params: Option<Params>,
+    ) -> Result<Role, OpsviewClientError> {
+        self.get_object_config_by_key::<Role>("name", name, params)
+            .await
     }
 
     /// Retrieves the configuration of a service check from the Opsview system by its name.
@@ -1559,6 +1768,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the service check whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the service check configuration, or an error if the operation fails.
@@ -1569,8 +1779,9 @@ impl OpsviewClient {
     pub async fn get_servicecheck_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<ServiceCheck, OpsviewClientError> {
-        self.get_object_config_by_key::<ServiceCheck>("name", name)
+        self.get_object_config_by_key::<ServiceCheck>("name", name, params)
             .await
     }
 
@@ -1581,6 +1792,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the service group whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the service group configuration, or an error if the operation fails.
@@ -1591,8 +1803,9 @@ impl OpsviewClient {
     pub async fn get_servicegroup_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<ServiceGroup, OpsviewClientError> {
-        self.get_object_config_by_key::<ServiceGroup>("name", name)
+        self.get_object_config_by_key::<ServiceGroup>("name", name, params)
             .await
     }
 
@@ -1604,6 +1817,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the shared notification profile whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the shared notification profile configuration, or an error if the
@@ -1615,8 +1829,9 @@ impl OpsviewClient {
     pub async fn get_sharednotificationprofile_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<SharedNotificationProfile, OpsviewClientError> {
-        self.get_object_config_by_key::<SharedNotificationProfile>("name", name)
+        self.get_object_config_by_key::<SharedNotificationProfile>("name", name, params)
             .await
     }
 
@@ -1627,6 +1842,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the timeperiod whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the timeperiod configuration, or an error if the operation fails.
@@ -1637,8 +1853,9 @@ impl OpsviewClient {
     pub async fn get_timeperiod_config(
         &self,
         name: &str,
+        params: Option<Params>,
     ) -> Result<TimePeriod, OpsviewClientError> {
-        self.get_object_config_by_key::<TimePeriod>("name", name)
+        self.get_object_config_by_key::<TimePeriod>("name", name, params)
             .await
     }
 
@@ -1649,6 +1866,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `name` - The name of the variable whose configuration is to be retrieved.
+    /// * `params` - Optional parameters to be included in the request.
     ///
     /// # Returns
     /// A `Result` wrapping the variable configuration, or an error if the operation fails.
@@ -1656,8 +1874,12 @@ impl OpsviewClient {
     /// # Errors
     /// Returns an error if the HTTP request fails, or if the variable is not found or the
     /// configuration is missing.
-    pub async fn get_variable_config(&self, name: &str) -> Result<Variable, OpsviewClientError> {
-        self.get_object_config_by_key::<Variable>("name", name)
+    pub async fn get_variable_config(
+        &self,
+        name: &str,
+        params: Option<Params>,
+    ) -> Result<Variable, OpsviewClientError> {
+        self.get_object_config_by_key::<Variable>("name", name, params)
             .await
     }
 
@@ -1856,8 +2078,16 @@ mod print_tests {
     async fn print_get_response_by_path<T: ConfigObject>(
         client: &OpsviewClient,
         path: &str,
+        params: Option<Params>,
     ) -> Result<(), OpsviewClientError> {
-        let response = client.get(&format!("{}?s.sort=name", path)).await?;
+        let params = match params.clone() {
+            None => Some(vec![]),
+            Some(mut p) => {
+                p.push(("s.sort".to_string(), "name".to_string()));
+                Some(p)
+            }
+        };
+        let response = client.get(path, params).await?;
         let pretty_json = serde_json::to_string_pretty(&response)?;
         println!("API response:{}", pretty_json);
         Ok(())
@@ -1893,7 +2123,8 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_bsmcomponent_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<BSMComponent>(&client, "/config/bsmcomponent").await?;
+            print_get_response_by_path::<BSMComponent>(&client, "/config/bsmcomponent", None)
+                .await?;
             client.logout().await?;
         }
         Ok(())
@@ -1908,7 +2139,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_bsmservice_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<BSMService>(&client, "/config/bsmservice").await?;
+            print_get_response_by_path::<BSMService>(&client, "/config/bsmservice", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -1923,7 +2154,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_contact_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<Contact>(&client, "/config/contact").await?;
+            print_get_response_by_path::<Contact>(&client, "/config/contact", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -1938,7 +2169,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_hashtag_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<Hashtag>(&client, "/config/keyword").await?;
+            print_get_response_by_path::<Hashtag>(&client, "/config/keyword", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -1953,7 +2184,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_host_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<Host>(&client, "/config/host").await?;
+            print_get_response_by_path::<Host>(&client, "/config/host", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -1968,8 +2199,12 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_hostcheckcommand_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<HostCheckCommand>(&client, "/config/hostcheckcommand")
-                .await?;
+            print_get_response_by_path::<HostCheckCommand>(
+                &client,
+                "/config/hostcheckcommand",
+                None,
+            )
+            .await?;
             client.logout().await?;
         }
         Ok(())
@@ -1984,7 +2219,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_hostgroup_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<HostGroup>(&client, "/config/hostgroup").await?;
+            print_get_response_by_path::<HostGroup>(&client, "/config/hostgroup", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -1999,7 +2234,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_hosticon_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<HostIcon>(&client, "/config/hosticons").await?;
+            print_get_response_by_path::<HostIcon>(&client, "/config/hosticons", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -2014,7 +2249,8 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_hosttemplate_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<HostTemplate>(&client, "/config/hosttemplate").await?;
+            print_get_response_by_path::<HostTemplate>(&client, "/config/hosttemplate", None)
+                .await?;
             client.logout().await?;
         }
         Ok(())
@@ -2030,8 +2266,12 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_monitoringcluster_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<MonitoringCluster>(&client, "/config/monitoringcluster")
-                .await?;
+            print_get_response_by_path::<MonitoringCluster>(
+                &client,
+                "/config/monitoringcluster",
+                None,
+            )
+            .await?;
             client.logout().await?;
         }
         Ok(())
@@ -2046,8 +2286,12 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_netflowcollector_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<NetflowCollector>(&client, "/config/netflow_collector")
-                .await?;
+            print_get_response_by_path::<NetflowCollector>(
+                &client,
+                "/config/netflow_collector",
+                None,
+            )
+            .await?;
             client.logout().await?;
         }
         Ok(())
@@ -2062,7 +2306,8 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_netflowsource_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<NetflowSource>(&client, "/config/netflow_source").await?;
+            print_get_response_by_path::<NetflowSource>(&client, "/config/netflow_source", None)
+                .await?;
             client.logout().await?;
         }
         Ok(())
@@ -2077,8 +2322,12 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_notificationmethod_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<NotificationMethod>(&client, "/config/notificationmethod")
-                .await?;
+            print_get_response_by_path::<NotificationMethod>(
+                &client,
+                "/config/notificationmethod",
+                None,
+            )
+            .await?;
             client.logout().await?;
         }
         Ok(())
@@ -2093,7 +2342,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_plugin_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<Plugin>(&client, "/config/plugin").await?;
+            print_get_response_by_path::<Plugin>(&client, "/config/plugin", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -2108,7 +2357,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_role_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<Role>(&client, "/config/role").await?;
+            print_get_response_by_path::<Role>(&client, "/config/role", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -2123,7 +2372,8 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_servicecheck_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<ServiceCheck>(&client, "/config/servicecheck").await?;
+            print_get_response_by_path::<ServiceCheck>(&client, "/config/servicecheck", None)
+                .await?;
             client.logout().await?;
         }
         Ok(())
@@ -2138,7 +2388,8 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_servicegroup_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<ServiceGroup>(&client, "/config/servicegroup").await?;
+            print_get_response_by_path::<ServiceGroup>(&client, "/config/servicegroup", None)
+                .await?;
             client.logout().await?;
         }
         Ok(())
@@ -2156,6 +2407,7 @@ mod print_tests {
             print_get_response_by_path::<SharedNotificationProfile>(
                 &client,
                 "/config/sharednotificationprofile",
+                None,
             )
             .await?;
             client.logout().await?;
@@ -2172,7 +2424,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_tenancy_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<Tenancy>(&client, "/config/tenancy").await?;
+            print_get_response_by_path::<Tenancy>(&client, "/config/tenancy", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -2187,7 +2439,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_timeperiod_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<TimePeriod>(&client, "/config/timeperiod").await?;
+            print_get_response_by_path::<TimePeriod>(&client, "/config/timeperiod", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -2202,7 +2454,7 @@ mod print_tests {
     #[tokio::test]
     async fn print_all_variable_configs() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<Variable>(&client, "/config/attribute").await?;
+            print_get_response_by_path::<Variable>(&client, "/config/attribute", None).await?;
             client.logout().await?;
         }
         Ok(())
@@ -2212,7 +2464,9 @@ mod print_tests {
     #[ignore]
     async fn test_get_object_id_by_key() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
-            let host_id = client.get_object_id_by_key::<Host>("name", "opsview").await;
+            let host_id = client
+                .get_object_id_by_key::<Host>("name", "opsview", None)
+                .await;
 
             println!("host_id: {:?}", host_id);
             assert!(host_id.is_ok());
