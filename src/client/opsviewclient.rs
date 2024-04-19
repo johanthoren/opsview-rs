@@ -1,6 +1,6 @@
 //! # Opsview Client
 //! Contains the [`OpsviewClient`] struct and methods for interacting with the Opsview API.
-use crate::{config::*, prelude::*};
+use crate::{config::*, prelude::*, status::HostGroupStatusSummary};
 use reqwest::{self, StatusCode};
 use serde_json::{json, Value};
 use url::Url;
@@ -247,7 +247,7 @@ impl OpsviewClient {
     }
 
     /// Performs a GET request to a specified path in the Opsview API and returns the response.
-    async fn get(&self, path: &str) -> Result<Value, OpsviewClientError> {
+    pub async fn get(&self, path: &str) -> Result<Value, OpsviewClientError> {
         let url = Url::parse(&format!("{}/rest{}", self.url, path))?;
         handle_http_response(self.client.get(url.as_ref()).send().await?).await
     }
@@ -1262,6 +1262,24 @@ impl OpsviewClient {
     pub async fn get_hostgroup_config(&self, name: &str) -> Result<HostGroup, OpsviewClientError> {
         self.get_object_config_by_key::<HostGroup>("name", name)
             .await
+    }
+
+    #[allow(missing_docs)]
+    pub async fn get_hostgroup_status_summary(
+        &self,
+    ) -> Result<HostGroupStatusSummary, OpsviewClientError> {
+        let response = self.get("/status/hostgroup").await?;
+        //println!("{:#?}", result);
+        let response_object = response
+            .get("list")
+            .ok_or(OpsviewClientError::ObjectNotFound(
+                "/status/hostgroup/list".to_string(),
+            ))?
+            .get(0)
+            .ok_or(OpsviewClientError::ObjectNotFound("0".to_string()))?;
+        println!("{:#?}", response_object);
+        let object: HostGroupStatusSummary = serde_json::from_value(response_object.clone())?;
+        Ok(object)
     }
 
     /// Retrieves the configuration of a host icon from the Opsview system by its name.

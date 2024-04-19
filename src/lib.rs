@@ -88,8 +88,10 @@ pub mod instance;
 pub mod prelude;
 pub use prelude::*;
 
-/// The `util` module contains utility functions and types used throughout the `opsview` crate.
-pub mod util;
-
 /// The `state` module contains the `HostState` and `ServiceCheckState` enums.
 pub mod state;
+
+pub mod status;
+
+/// The `util` module contains utility functions and types used throughout the `opsview` crate.
+pub mod util;
