@@ -211,6 +211,10 @@ pub struct Host {
     )]
     pub snmp_extended_throughput_data: Option<bool>,
 
+    // TODO: Add support for the `snmpinterfaces` field.
+    // `snmpinterfaces` is an optional column for /config/host that needs to be explicitly requested
+    // in the API call. It is not included in the default response.
+    //
     /// The maximum SNMP message size.
     /// Default: Some(0)
     #[serde(
