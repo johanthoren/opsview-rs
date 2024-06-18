@@ -98,10 +98,8 @@ pub trait SNMPInterfacesExt {
 
 impl SNMPInterfacesExt for SNMPInterfaces {
     fn validate(&self) -> Result<(), OpsviewConfigError> {
-        if self.len() > 0 {
-            if self[0].interfacename != Some("".to_string()) {
-                return Err(OpsviewConfigError::SNMPInterfacesIndex0InvalidName);
-            }
+        if !self.is_empty() && self[0].interfacename != Some("".to_string()) {
+            return Err(OpsviewConfigError::SNMPInterfacesIndex0InvalidName);
         }
 
         // TODO: Add additional validation logic.
@@ -119,9 +117,11 @@ mod tests {
         let mut i: SNMPInterface = Default::default();
         i.interfacename = Some("eth0".to_string());
         i.indexid = Some(0);
+        let i = i;
 
         let mut interfaces = SNMPInterfaces::new();
         interfaces.push(i);
+        let interfaces = interfaces;
 
         let result = interfaces.validate();
 
