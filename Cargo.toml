@@ -25,18 +25,18 @@ once_cell = "1.19.0"
 percent-encoding = "2.3.1"
 rand = "0.8.5"
 regex = "1.10.2"
-reqwest = { version = "0.11.22", features = ["json"] }
+reqwest = { version = "0.12.5", features = ["json"] }
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 thiserror = "1.0.56"
-tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
 url = "2.5.0"
 strum = "0.26"
 strum_macros = "0.26"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_tokio"] }
-mockito = "1.2.0"
+mockito = "1.4.0"
 predicates = "3.0.4"
 pretty_assertions = "1.4.0"
 skeptic = {git = "https://github.com/Erk-/rust-skeptic", rev = "3e6ce6a2ac3313f13723dfa2483042c6bcd812f2"}
