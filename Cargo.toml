@@ -8,7 +8,6 @@ authors = ["Johan Thorén <johan@thoren.xyz>"]
 readme = "README.md"
 repository = "https://github.com/johanthoren/opsview-rs"
 keywords = ["opsview"]
-build = "build.rs"
 
 [lib]
 path = "src/lib.rs"
