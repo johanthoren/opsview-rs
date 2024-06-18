@@ -1058,3 +1058,79 @@ async fn test_create_and_delete_contact() -> Result<(), OpsviewError> {
 
     Ok(())
 }
+
+#[tokio::test]
+#[ignore]
+async fn test_get_specific_host_with_cols_params() -> Result<(), OpsviewClientError> {
+    if env::var("OV_URL").is_err() {
+        return Ok(());
+    }
+
+    if env::var("OV_USERNAME").is_err() {
+        return Ok(());
+    }
+
+    if env::var("OV_PASSWORD").is_err() {
+        return Ok(());
+    }
+
+    let client_lock = get_or_initialize_client().await;
+    let client_guard = client_lock.lock().await;
+
+    let client = client_guard
+        .as_ref()
+        .ok_or("OpsviewClient is not initialized")?;
+
+    bail_on_unsaved_changes(client).await?;
+
+    let host = client
+        .get_host_config(
+            "opsview",
+            Some(vec![("cols".to_string(), "name".to_string())]),
+        )
+        .await?;
+
+    println!("host: {:#?}", host);
+
+    assert_eq!(host.name, "opsview");
+
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore]
+async fn test_get_specific_host_with_snmpinterfaces_params() -> Result<(), OpsviewClientError> {
+    if env::var("OV_URL").is_err() {
+        return Ok(());
+    }
+
+    if env::var("OV_USERNAME").is_err() {
+        return Ok(());
+    }
+
+    if env::var("OV_PASSWORD").is_err() {
+        return Ok(());
+    }
+
+    let client_lock = get_or_initialize_client().await;
+    let client_guard = client_lock.lock().await;
+
+    let client = client_guard
+        .as_ref()
+        .ok_or("OpsviewClient is not initialized")?;
+
+    bail_on_unsaved_changes(client).await?;
+
+    let host = client
+        .get_host_config(
+            "opsview",
+            Some(vec![("cols".to_string(), "+snmpinterfaces".to_string())]),
+        )
+        .await?;
+
+    println!("host: {:#?}", host);
+
+    assert!(host.snmpinterfaces.is_some());
+
+    Ok(())
+}

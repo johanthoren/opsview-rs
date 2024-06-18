@@ -2183,8 +2183,9 @@ mod print_tests {
     #[ignore]
     #[tokio::test]
     async fn print_all_host_configs() -> Result<(), OpsviewClientError> {
+        let params = Some(vec![("cols".to_string(), "+snmpinterfaces".to_string())]);
         if let Some(client) = setup_opsview_client().await? {
-            print_get_response_by_path::<Host>(&client, "/config/host", None).await?;
+            print_get_response_by_path::<Host>(&client, "/config/host", params).await?;
             client.logout().await?;
         }
         Ok(())

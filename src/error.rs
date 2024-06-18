@@ -177,6 +177,9 @@ pub enum OpsviewConfigError {
     #[error("Mandatory field '{0}' cannot be empty")]
     RequiredFieldEmpty(String),
 
+    #[error("Invalid name for SNMPInterface index 0, name must be an empty string")]
+    SNMPInterfacesIndex0InvalidName,
+
     #[error("String too long, expected at most {0} characters, got {1}")]
     StringTooLong(usize, usize),
 

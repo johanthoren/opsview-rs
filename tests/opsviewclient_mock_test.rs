@@ -349,6 +349,121 @@ async fn test_get_all_host_configs_mock() -> Result<(), OpsviewClientError> {
 }
 
 #[tokio::test]
+async fn test_get_all_host_configs_with_empty_snmpinterfaces_mock() -> Result<(), OpsviewClientError>
+{
+    let mut s = setup_mock_server().await;
+
+    s.mock("GET", "/rest/config/host?cols=%2Bsnmpinterfaces")
+        .with_status(200)
+        .with_body(ALL_HOST_CONFIGS_WITH_EMPTY_SNMPINTERFACES)
+        .create_async()
+        .await;
+
+    let ov = OpsviewClient::builder()
+        .url(&s.url())
+        .username("username")
+        .password("password")
+        .ignore_cert(false)
+        .build()
+        .await?;
+
+    let params = Some(vec![("cols".to_string(), "+snmpinterfaces".to_string())]);
+    let hosts = ov.get_all_host_configs(params).await?;
+    let host_0 = hosts.get("Amer-Finance-Environment").unwrap();
+    let host_48 = hosts.get("opsview").unwrap();
+
+    assert!(!hosts.is_empty());
+    assert_eq!(hosts.len(), 48);
+    assert_eq!(host_0.name, "Amer-Finance-Environment");
+    assert_eq!(
+        host_0
+            .snmpinterfaces
+            .clone()
+            .expect("snmpinterfaces is None"),
+        SNMPInterfaces::default()
+    );
+    assert_eq!(host_48.name, "opsview");
+    assert_eq!(
+        host_48
+            .snmpinterfaces
+            .clone()
+            .expect("snmpinterfaces is None"),
+        SNMPInterfaces::default()
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_all_host_configs_with_snmpinterfaces_mock() -> Result<(), OpsviewClientError> {
+    let mut s = setup_mock_server().await;
+
+    s.mock("GET", "/rest/config/host?cols=%2Bsnmpinterfaces")
+        .with_status(200)
+        .with_body(ALL_HOST_CONFIGS_WITH_SNMPINTERFACES)
+        .create_async()
+        .await;
+
+    let ov = OpsviewClient::builder()
+        .url(&s.url())
+        .username("username")
+        .password("password")
+        .ignore_cert(false)
+        .build()
+        .await?;
+
+    let params = Some(vec![("cols".to_string(), "+snmpinterfaces".to_string())]);
+    let hosts = ov.get_all_host_configs(params).await?;
+    let host_0 = hosts.get("Amer-Finance-Environment").unwrap();
+    let host_48 = hosts.get("opsview").unwrap();
+
+    assert!(!hosts.is_empty());
+    assert_eq!(hosts.len(), 48);
+    assert_eq!(host_0.name, "Amer-Finance-Environment");
+    assert_eq!(
+        host_0
+            .snmpinterfaces
+            .clone()
+            .expect("snmpinterfaces is None"),
+        SNMPInterfaces::default()
+    );
+    assert_eq!(host_48.name, "opsview");
+    assert!(host_48.snmpinterfaces.is_some());
+
+    let interfaces = host_48
+        .snmpinterfaces
+        .clone()
+        .expect("snmpinterfaces is None");
+
+    let i0 = interfaces[0].clone();
+    let i1 = interfaces[1].clone();
+
+    assert_eq!(i0.active, Some(false));
+    assert_eq!(i0.discards_critical, Some("15".to_string()));
+    assert_eq!(i0.discards_warning, None);
+    assert_eq!(i0.duplicatename, Some(false));
+    assert_eq!(i0.errors_critical, Some("10".to_string()));
+    assert_eq!(i0.errors_warning, None);
+    assert_eq!(i0.indexid, Some(0));
+    assert_eq!(i0.interfacename, Some("".to_string()));
+    assert_eq!(i0.throughput_critical, Some("50%".to_string()));
+    assert_eq!(i0.throughput_warning, None);
+
+    assert_eq!(i1.active, Some(false));
+    assert_eq!(i1.discards_critical, Some("".to_string()));
+    assert_eq!(i1.discards_warning, Some("".to_string()));
+    assert_eq!(i1.duplicatename, Some(false));
+    assert_eq!(i1.errors_critical, Some("".to_string()));
+    assert_eq!(i1.errors_warning, Some("".to_string()));
+    assert_eq!(i1.indexid, Some(0));
+    assert_eq!(i1.interfacename, Some("eth0".to_string()));
+    assert_eq!(i1.throughput_critical, Some("".to_string()));
+    assert_eq!(i1.throughput_warning, Some("".to_string()));
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_get_all_hostcheckcommand_configs_mock() -> Result<(), OpsviewClientError> {
     let mut s = setup_mock_server().await;
 

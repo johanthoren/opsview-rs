@@ -151,12 +151,12 @@ async fn main() {
         .unwrap();
         
     let master_monitoring_server = client
-        .get_monitoringcluster_config("Master Monitoring Server")
+        .get_monitoringcluster_config("Master Monitoring Server", None)
         .await
         .expect("Couldn't fetch 'Master Monitoring Server' from the API");
 
     let root_hostgroup = client
-        .get_hostgroup_config("Opsview")
+        .get_hostgroup_config("Opsview", None)
         .await
         .expect("Couldn't fetch HostGroup with the name 'Opsview' from the API");
     
@@ -175,7 +175,7 @@ async fn main() {
         .expect("Failed to create hostgroup 'opsview_rs_hostgroup'");
         
     let network_base_template = client
-        .get_hosttemplate_config("Network - Base")
+        .get_hosttemplate_config("Network - Base", None)
         .await
         .expect("Couldn't fetch 'Network - Base' from the API");
     

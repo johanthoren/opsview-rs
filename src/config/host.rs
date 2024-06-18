@@ -211,10 +211,6 @@ pub struct Host {
     )]
     pub snmp_extended_throughput_data: Option<bool>,
 
-    // TODO: Add support for the `snmpinterfaces` field.
-    // `snmpinterfaces` is an optional column for /config/host that needs to be explicitly requested
-    // in the API call. It is not included in the default response.
-    //
     /// The maximum SNMP message size.
     /// Default: Some(0)
     #[serde(
@@ -277,6 +273,41 @@ pub struct Host {
     /// Optional username for SNMPv3.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub snmpv3_username: Option<String>,
+
+    /// SNMP Interfaces
+    ///
+    /// Note that the column holding this data is optional and needs to be explicitly requested in
+    /// the API call using the `cols` parameter with the `+snmpinterfaces` value.
+    ///
+    /// # Example
+    /// Example of how to request a host with the `snmpinterfaces` column included:
+    /// ```rust
+    /// use opsview::client::OpsviewClient;
+    /// use opsview::config::Host;
+    /// use opsview::prelude::*;
+    ///
+    /// async fn get_host_with_snmpinterfaces(hostname: String)
+    /// -> Result<Host, OpsviewClientError> {
+    ///     let client = OpsviewClient::builder()
+    ///         .url("https://opsview.example.com")
+    ///         .username("admin")
+    ///         .password("password")
+    ///         .build()
+    ///         .await
+    ///         .unwrap();
+    ///
+    ///     let host = client
+    ///         .get_host_config(
+    ///             "opsview",
+    ///             Some(vec![("cols".to_string(), "+snmpinterfaces".to_string())]),
+    ///         )
+    ///         .await?;
+    ///
+    ///     Ok(host)
+    /// }
+    /// ```
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub snmpinterfaces: Option<SNMPInterfaces>,
 
     // TODO: Find out what constraints are on this field.
     /// Optional string specifying the interface description level for tidying.
@@ -429,6 +460,7 @@ impl Default for Host {
             snmpv3_privprotocol: None,
             snmpv3_privpassword: None,
             snmpv3_username: None,
+            snmpinterfaces: None,
             tidy_ifdescr_level: None,
             use_mrtg: None,
             use_nmis: None,
@@ -661,6 +693,7 @@ pub struct HostBuilder {
     snmpv3_privprotocol: Option<SNMPV3PrivProtocol>,
     snmpv3_privpassword: Option<String>,
     snmpv3_username: Option<String>,
+    snmpinterfaces: Option<SNMPInterfaces>,
     tidy_ifdescr_level: Option<String>,
     use_mrtg: Option<bool>,
     use_nmis: Option<bool>,
@@ -725,6 +758,7 @@ impl Default for HostBuilder {
             snmpv3_privprotocol: None,
             snmpv3_privpassword: None,
             snmpv3_username: None,
+            snmpinterfaces: None,
             tidy_ifdescr_level: None,
             use_mrtg: None,
             use_nmis: None,
@@ -818,6 +852,10 @@ impl Builder for HostBuilder {
         let validated_snmpv3_username =
             validate_opt_string(self.snmpv3_username, validate_snmpv3_username)?;
 
+        if let Some(ref interfaces) = self.snmpinterfaces {
+            interfaces.validate()?;
+        }
+
         Ok(Host {
             name: validate_and_trim_host_name(&name)?,
             hostgroup: Some(hostgroup),
@@ -862,6 +900,7 @@ impl Builder for HostBuilder {
             snmpv3_privprotocol: self.snmpv3_privprotocol,
             snmpv3_privpassword: validated_snmpv3_privpassword,
             snmpv3_username: validated_snmpv3_username,
+            snmpinterfaces: self.snmpinterfaces,
             tidy_ifdescr_level: self.tidy_ifdescr_level,
             use_mrtg: self.use_mrtg,
             use_nmis: self.use_nmis,
@@ -1184,6 +1223,12 @@ impl HostBuilder {
     /// Clears the snmpv3_username field.
     pub fn clear_snmpv3_username(mut self) -> Self {
         self.snmpv3_username = None;
+        self
+    }
+
+    /// Clears the snmpinterfaces field.
+    pub fn clear_snmpinterfaces(mut self) -> Self {
+        self.snmpinterfaces = None;
         self
     }
 
@@ -1548,6 +1593,15 @@ impl HostBuilder {
     /// * `snmpv3_username` - Username for SNMPv3.
     pub fn snmpv3_username(mut self, snmpv3_username: &str) -> Self {
         self.snmpv3_username = Some(snmpv3_username.to_string());
+        self
+    }
+
+    /// Sets the snmpinterfaces field.
+    ///
+    /// # Arguments
+    /// * `snmpinterfaces` - A number of [`SNMPInterfaces`]
+    pub fn snmpinterfaces(mut self, snmpinterfaces: SNMPInterfaces) -> Self {
+        self.snmpinterfaces = Some(snmpinterfaces);
         self
     }
 
