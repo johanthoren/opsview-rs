@@ -1331,9 +1331,37 @@ impl OpsviewClient {
             .await
     }
 
+    /// Retrieves the host configs that have a variable with a matching name.
+    ///
+    /// Unstable and experimental. This method is subject to change.
+    pub async fn get_host_configs_by_matching_variable_name(
+        &self,
+        variable_name: &str,
+    ) -> Result<ConfigObjectMap<Host>, OpsviewClientError> {
+        let params = Some(vec![(
+            "cols".to_string(),
+            "hostattributes,id,name,ip".to_string(),
+        )]);
+        let all_hosts = self.get_all_host_configs(params).await?;
+        let mut matching_hosts: ConfigObjectMap<Host> = ConfigObjectMap::new();
+
+        for host in all_hosts.values() {
+            if let Some(attributes) = &host.hostattributes {
+                for (_name, attribute) in attributes.iter() {
+                    if attribute.name == variable_name {
+                        matching_hosts
+                            .add(self.get_host_config_by_id(host.id.unwrap(), None).await?);
+                    }
+                }
+            }
+        }
+
+        Ok(matching_hosts)
+    }
+
     /// Retrieves the host configs that have a matching variable value.
     ///
-    /// Unstable. This method is subject to change.
+    /// Unstable and experimental. This method is subject to change.
     pub async fn get_host_configs_by_matching_variable_value(
         &self,
         variable_name: &str,
@@ -1356,7 +1384,8 @@ impl OpsviewClient {
                             || attribute.arg3.clone().unwrap_or_default() == value
                             || attribute.arg4.clone().unwrap_or_default() == value)
                     {
-                        matching_hosts.add(host.as_ref().clone());
+                        matching_hosts
+                            .add(self.get_host_config_by_id(host.id.unwrap(), None).await?);
                     }
                 }
             }
@@ -1602,6 +1631,7 @@ impl OpsviewClient {
                 "ConfigObject '{}' not found at '{}'",
                 id, full_path
             )))?;
+        println!("response_object: {:#?}", response_object);
         let object: T = serde_json::from_value(response_object.clone())?;
         Ok(object)
     }
@@ -2512,14 +2542,29 @@ mod print_tests {
     }
 
     #[tokio::test]
-    #[ignore]
+    async fn test_get_host_config_by_variable_name() -> Result<(), OpsviewClientError> {
+        if let Some(client) = setup_opsview_client().await? {
+            let hosts = client
+                .get_host_configs_by_matching_variable_name("DISK")
+                .await?;
+
+            println!("matching hosts: {}", hosts.len());
+            println!("hosts: {:#?}", hosts);
+            assert!(!hosts.is_empty());
+            client.logout().await?;
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_get_host_config_by_variable_value() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
             let hosts = client
                 .get_host_configs_by_matching_variable_value("DISK", "/")
                 .await?;
 
-            println!("matching hosts: {:?}", hosts.len());
+            println!("matching hosts: {}", hosts.len());
             println!("hosts: {:#?}", hosts);
             assert!(!hosts.is_empty());
             client.logout().await?;
