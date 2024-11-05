@@ -481,7 +481,7 @@ impl OpsviewClient {
     ///
     /// # Arguments
     /// * `obj` - A reference to an object which implements the `Persistent` trait.
-    ///  The object must have at least one of the following identifiers set: ref_, id, or name.
+    ///   The object must have at least one of the following identifiers set: ref_, id, or name.
     ///
     ///  # Returns
     ///  A `Result` wrapping a `serde_json::Value` containing the response from the Opsview API,

@@ -140,7 +140,7 @@ pub struct Host {
     /// * d - Down
     /// * r - Recovery
     /// * f - Flapping
-    /// Default: Some("u,d,r".to_string())
+    ///   Default: Some("u,d,r".to_string())
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notification_options: Option<String>,
 
@@ -1383,11 +1383,11 @@ impl HostBuilder {
     ///
     /// # Arguments
     /// * `notification_options` - Notification options for the `Host`.
-    ///  Valid options are:
-    ///  * `d` - send notifications on DOWN state
-    ///  * `u` - send notifications on UNREACHABLE state
-    ///  * `r` - send notifications on recovery (UP state)
-    ///  * `f` - send notifications when the host starts and stops flapping
+    ///    Valid options are:
+    ///    * `d` - send notifications on DOWN state
+    ///    * `u` - send notifications on UNREACHABLE state
+    ///    * `r` - send notifications on recovery (UP state)
+    ///    * `f` - send notifications when the host starts and stops flapping
     ///
     ///  Multiple options can be specified, separated by commas.
     ///
