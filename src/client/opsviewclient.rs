@@ -1331,6 +1331,40 @@ impl OpsviewClient {
             .await
     }
 
+    /// Retrieves the host configs that have a matching variable value.
+    ///
+    /// Unstable. This method is subject to change.
+    pub async fn get_host_configs_by_matching_variable_value(
+        &self,
+        variable_name: &str,
+        value: &str,
+    ) -> Result<ConfigObjectMap<Host>, OpsviewClientError> {
+        let params = Some(vec![(
+            "cols".to_string(),
+            "hostattributes,id,name,ip".to_string(),
+        )]);
+        let all_hosts = self.get_all_host_configs(params).await?;
+        let mut matching_hosts: ConfigObjectMap<Host> = ConfigObjectMap::new();
+
+        for host in all_hosts.values() {
+            if let Some(attributes) = &host.hostattributes {
+                for (_name, attribute) in attributes.iter() {
+                    if attribute.name == variable_name
+                        && (attribute.value.clone().unwrap_or_default() == value
+                            || attribute.arg1.clone().unwrap_or_default() == value
+                            || attribute.arg2.clone().unwrap_or_default() == value
+                            || attribute.arg3.clone().unwrap_or_default() == value
+                            || attribute.arg4.clone().unwrap_or_default() == value)
+                    {
+                        matching_hosts.add(host.as_ref().clone());
+                    }
+                }
+            }
+        }
+
+        Ok(matching_hosts)
+    }
+
     /// Retrieves the configuration of a host from the Opsview system by its ID.
     ///
     /// # Arguments
@@ -2471,6 +2505,23 @@ mod print_tests {
 
             println!("host_id: {:?}", host_id);
             assert!(host_id.is_ok());
+            client.logout().await?;
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_get_host_config_by_variable_value() -> Result<(), OpsviewClientError> {
+        if let Some(client) = setup_opsview_client().await? {
+            let hosts = client
+                .get_host_configs_by_matching_variable_value("DISK", "/")
+                .await?;
+
+            println!("matching hosts: {:?}", hosts.len());
+            println!("hosts: {:#?}", hosts);
+            assert!(!hosts.is_empty());
             client.logout().await?;
         }
 
