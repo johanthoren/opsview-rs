@@ -1424,6 +1424,7 @@ pub struct ServiceCheckHostRef {
     exception: Option<String>,
     #[serde(
         skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_string_or_number_to_option_bool",
         serialize_with = "serialize_option_bool_as_string",
         default
     )]
