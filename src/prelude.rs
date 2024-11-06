@@ -712,6 +712,7 @@ where
             E: serde::de::Error,
         {
             match value {
+                "" => Ok(None),
                 "0" => Ok(Some(false)),
                 "1" => Ok(Some(true)),
                 "yes" => Ok(Some(true)),
