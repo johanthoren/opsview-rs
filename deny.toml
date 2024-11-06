@@ -7,5 +7,5 @@ allow = [
     "Unicode-DFS-2016",
     "Unicode-3.0",
 ]
-[sources.allow-org]
-github = ["ITRS-Group"]
+# [sources.allow-org]
+# github = ["ITRS-Group"]
