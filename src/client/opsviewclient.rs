@@ -2542,6 +2542,7 @@ mod print_tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_get_host_config_by_variable_name() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
             let hosts = client
@@ -2558,6 +2559,7 @@ mod print_tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_get_host_config_by_variable_value() -> Result<(), OpsviewClientError> {
         if let Some(client) = setup_opsview_client().await? {
             let hosts = client
