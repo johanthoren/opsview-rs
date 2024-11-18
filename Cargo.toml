@@ -1,7 +1,7 @@
 [package]
 name = "opsview"
 description = "A Rust Opsview API Client Library with batteries included"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2021"
 license = "ISC"
 authors = ["Johan Thorén <johan@thoren.xyz>"]
