@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
+use std::iter::FromIterator;
 use std::sync::Arc;
 
 /// A map of objects implementing the `ConfigObject` trait.
@@ -334,6 +335,23 @@ pub trait PersistentMap: Serialize + Sized {
     }
 }
 
+impl<T: ConfigObject + Clone> ConfigObjectMap<T> {
+    /// Creates an iterator over cloned objects in the collection.
+    pub fn iter_cloned(&self) -> impl Iterator<Item = T> + '_ {
+        self.objects.values().map(|arc| (**arc).clone())
+    }
+}
+
+impl<T: ConfigObject> FromIterator<T> for ConfigObjectMap<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut map = ConfigObjectMap::new();
+        for item in iter {
+            map.add(item);
+        }
+        map
+    }
+}
+
 impl<T: ConfigObject> ConfigObjectMap<T> {
     /// Creates a new instance of `ConfigObjectMap` with default values.
     pub fn new() -> Self {
@@ -382,6 +400,11 @@ impl<T: ConfigObject> ConfigObjectMap<T> {
     /// An `Option<Arc<T>>` representing the object if found, or `None` if not found.
     pub fn get(&self, key: &str) -> Option<Arc<T>> {
         self.objects.get(key).cloned()
+    }
+
+    /// Inserts an object into the collection without checking for duplicates.
+    pub fn insert(&mut self, key: String, object: Arc<T>) {
+        self.objects.insert(key, object);
     }
 
     /// Checks whether the collection is empty.
@@ -474,6 +497,23 @@ impl<'de, T: ConfigObject> Deserialize<'de> for ConfigObjectMap<T> {
         }
 
         Ok(ConfigObjectMap { objects })
+    }
+}
+
+impl<T: ConfigRef + Clone> ConfigRefMap<T> {
+    /// Creates an iterator over cloned objects in the collection.
+    pub fn iter_cloned(&self) -> impl Iterator<Item = T> + '_ {
+        self.objects.values().map(|arc| (**arc).clone())
+    }
+}
+
+impl<T: ConfigRef> FromIterator<T> for ConfigRefMap<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut map = ConfigRefMap::new();
+        for item in iter {
+            map.add(item);
+        }
+        map
     }
 }
 
