@@ -1631,7 +1631,6 @@ impl OpsviewClient {
                 "ConfigObject '{}' not found at '{}'",
                 id, full_path
             )))?;
-        println!("response_object: {:#?}", response_object);
         let object: T = serde_json::from_value(response_object.clone())?;
         Ok(object)
     }
